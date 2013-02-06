@@ -29,7 +29,7 @@ $IfAliases = [string]::join("`n",$IfAliases)
 
 $Ports   = @()
 $IndexRx = [regex] 'ifName\.(\d+)'
-$NameRx  = [regex] '\.\d+\ (\w+\.\d+\.\d+)'
+$NameRx  = [regex] '\.\d+\ (.+)'
 
 foreach ($i in $IfNames) {
     $Index   = $IndexRx.Match($i).Groups[1].Value

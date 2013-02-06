@@ -17,8 +17,8 @@ Import-Module C:\_strap\prtgshell\prtgshell.psm1
 
 $Admin         = snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifAdminStatus.$Port"
 $Oper          = snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifOperStatus.$Port"
-$IfInOctets    = [math]::truncate([int64](snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifInOctets.$Port") * 8 / 1024)
-$IfOutOctets   = [math]::truncate([int64](snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifOutOctets.$Port") * 8 / 1024)
+$IfInOctets    = [int64](snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifInOctets.$Port")
+$IfOutOctets   = [int64](snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifOutOctets.$Port")
 $IfInErrors    = snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifInErrors.$Port"
 $IfOutErrors   = snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifOutErrors.$Port"
 $IfInDiscards  = snmpget.exe -Ovq -r 3 -v $Version -c $Community $Agent "IF-MIB::ifInDiscards.$Port"
