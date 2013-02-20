@@ -45,7 +45,7 @@ try {
     $SubKey    = $RemoteReg.opensubkey($RegKey)
     $Value     = $SubKey.GetValue($Name)
 
-    $LastUpdate = [datetime]::ParseExact($Value,"yyyymmdd",$null)
+    $LastUpdate = [datetime]::ParseExact($Value,"yyyyMMdd",$null)
     $LastUpdate = $LastUpdate.ToShortDateString()
     $LastDay = (Get-Date -date $LastUpdate).DayOfYear
 
