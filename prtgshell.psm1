@@ -468,6 +468,54 @@ function Get-PrtgObjectProperty {
 
 ###############################################################################
 
+function Get-PrtgSensorChannels {
+	<#
+		.SYNOPSIS
+		
+		.DESCRIPTION
+		
+		.EXAMPLE
+	#>
+
+	Param (
+		[Parameter(Mandatory=$True,Position=0)]
+		[int]$SensorId
+	)
+
+	BEGIN {
+		$PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+	}
+
+	PROCESS {
+		$url = HelperURLBuilder "table.xml" (
+			"&content=channels",
+			"&columns=name,lastvalue_",
+			"&id=$SensorId"
+		)
+
+		$Global:LastUrl = $Url
+
+		$QueryObject = HelperHTTPQuery $url -AsXML
+		$Data = $QueryObject.Data
+		
+		$ChannelProperties = @("name","lastvalue","lastvalue_raw")
+		$Channels = @()
+
+		foreach ($item in $Data.channels.item) {
+			$Channel = "" | Select-Object $ChannelProperties
+			foreach ($Prop in $ChannelProperties) {
+				$Channel.$Prop = $item.$Prop
+			}
+			$Channels += $Channel
+		}
+
+		return $Channels
+	}
+}
+
+###############################################################################
+
 function Get-PrtgParentProbe {
 # can this be expanded out to all objects (devices, sensors, groups)?
 # maybe not.
