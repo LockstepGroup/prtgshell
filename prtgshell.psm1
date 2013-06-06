@@ -554,6 +554,82 @@ function Get-PrtgParentProbe {
     }
 }
 
+
+###############################################################################
+
+function Get-PrtgTableData {
+	<#
+		.SYNOPSIS
+		
+		.DESCRIPTION
+		
+		.EXAMPLE
+	#>
+
+	Param (
+		[Parameter(Mandatory=$True,Position=0)]
+		[int]$ObjectId,
+		
+		[Parameter(Mandatory=$True,Position=1)]
+		[string]$Content
+	)
+
+	BEGIN {
+		$PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+		
+		$TableValues = "sensortree","devices","groups","sensors","todos","messages","values","channels","reports","maps","storedreports","history"
+		$TableColumns = @(""),
+			@("objid","probe","group","device","host","downsens","partialdownsens","downacksens","upsens","warnsens","pausedsens","unusualsens","undefinedsens"),
+			@("objid","probe","group","name","downsens","partialdownsens","downacksens","upsens","warnsens","pausedsens","unusualsens","undefinedsens"),
+			@("objid","probe","group","device","sensor","status","message","lastvalue","priority","favorite"),
+			@("objid","datetime","name","status","priority","message"),
+			@("objid","datetime","parent","type","name","status","message"),
+			@("datetime","value_","coverage"),
+			@("name","lastvalue","lastvalue_raw"),
+			@("objid","name","template","period","schedule","email","lastrun","nextrun"),
+			@("objid","name"),
+			@("name","datetime","size"),
+			@("dateonly","timeonly","user","message")
+		
+		$PRTGTableBuilder = @()
+
+		for ($i = 0; $i -le $TableValues.Count; $i++) {
+			$ThisRow = "" | Select-Object @{ n='content'; e={ $TableValues[$i] } },@{ n='columns'; e={ $TableColumns[$i] } }
+			$PRTGTableBuilder += $ThisRow
+		}
+	}
+
+	PROCESS {
+	
+		$SelectedColumns = ($PRTGTableBuilder | ? { $_.content -eq $Content }).columns
+		$SelectedColumnsString = $SelectedColumns -join ","
+	
+		$url = HelperURLBuilder "table.xml" (
+			"&content=$Content",
+			"&columns=$SelectedColumnsString",
+			"&id=$ObjectId"
+		)
+
+		$Global:LastUrl = $Url
+
+		$QueryObject = HelperHTTPQuery $url -AsXML
+		$Data = $QueryObject.Data
+		
+		$ReturnData = @()
+
+		foreach ($item in $Data.$Content.item) {
+			$ThisRow = "" | Select-Object $SelectedColumns
+			foreach ($Prop in $SelectedColumns) {
+				$ThisRow.$Prop = $item.$Prop
+			}
+			$ReturnData += $ThisRow
+		}
+
+		return $ReturnData
+	}
+}
+
 ###############################################################################
 
 ###############################################################################
