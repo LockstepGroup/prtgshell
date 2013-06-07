@@ -725,6 +725,9 @@ function Set-PrtgResult {
 
 ###############################################################################
 # This is definitely incomplete but works in extremely limited use cases
+# todo:
+#   adjust "avg" value, which sets the interval of data returned
+#   included timestamp on each line of returned data
 
 function Get-PrtgSensorHistoricData {
 	<#
