@@ -2,7 +2,6 @@
 ## API Functions
 ###############################################################################
 
-
 function Get-PrtgServer {
 	<#
 	.SYNOPSIS
@@ -249,46 +248,14 @@ function Get-PrtgDeviceSensors {
 
     Param (
         [Parameter(Mandatory=$True,Position=0)]
-        [int]$DeviceId,
-
-        [Parameter(Mandatory=$False,Position=1)]
-        [int]$SensorId
+        [int]$DeviceId
     )
-
-    BEGIN {
-		$PRTG = $Global:PrtgServerObject
-		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-    }
-
-    PROCESS {
-		$url = HelperURLBuilder "table.xml" (
-			"&content=sensors",
-			"&columns=objid,probe,group,device,sensor,status,",
-			"message,lastvalue,priority,favorite,comments",
-			"&id=$DeviceId"
-		)
-
-        $Global:LastUrl = $Url
-        
-		$QueryObject = HelperHTTPQuery $url -AsXML
-		$Data = $QueryObject.Data
-        
-		$SensorProperties = @("objid","probe","group","device","sensor","status","status_raw","message","message_raw","lastvalue","lastvalue_raw","priority","favorite","favorite_raw","comments")
-		$Sensors = @()
-		
-        foreach ($item in $Data.sensors.item) {
-			$Sensor = "" | Select-Object $SensorProperties
-			foreach ($Prop in $SensorProperties) {
-				$Sensor.$Prop = $item.$Prop
-			}
-			$Sensors += $Sensor
-		}
-		
-        return $Sensors
-    }
+	
+	Get-PrtgTableData $DeviceId sensors
 }
 
 ###############################################################################
+# need to roll this into get-prtgtabledata
 
 function Get-PrtgDeviceSensorsByTag {
 	<#
@@ -485,47 +452,12 @@ function Get-PrtgSensorChannels {
 		[int]$SensorId
 	)
 
-	BEGIN {
-		$PRTG = $Global:PrtgServerObject
-		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-	}
-
-	PROCESS {
-		$url = HelperURLBuilder "table.xml" (
-			"&content=channels",
-			"&columns=name,lastvalue_",
-			"&id=$SensorId"
-		)
-
-		$Global:LastUrl = $Url
-
-		$QueryObject = HelperHTTPQuery $url -AsXML
-		$Data = $QueryObject.Data
-		
-		$ChannelProperties = @("name","lastvalue","lastvalue_raw")
-		$Channels = @()
-
-		foreach ($item in $Data.channels.item) {
-			$Channel = "" | Select-Object $ChannelProperties
-			foreach ($Prop in $ChannelProperties) {
-				if ($Prop -eq "lastvalue_raw") {
-					$Channel.$Prop = HelperFormatHandler $item.$Prop
-				} else {
-					$Channel.$Prop = $item.$Prop
-				}
-			}
-			$Channels += $Channel
-		}
-
-		return $Channels
-	}
+	Get-PrtgTableData $SensorId channels
 }
 
 ###############################################################################
 
 function Get-PrtgParentProbe {
-# can this be expanded out to all objects (devices, sensors, groups)?
-# maybe not.
 	<#
 	.SYNOPSIS
 		
@@ -540,27 +472,102 @@ function Get-PrtgParentProbe {
         [int]$DeviceId
     )
 
+	Get-PrtgObjectDetails $DeviceId -Value probename
+}
+
+
+###############################################################################
+
+function Get-PrtgObjectType {
+	<#
+	.SYNOPSIS
+		
+	.DESCRIPTION
+		
+	.EXAMPLE
+		
+	#>
+
+    Param (
+        [Parameter(Mandatory=$True,Position=0)]
+        [int]$ObjectId,
+		
+        [Parameter(Mandatory=$False)]
+        [switch]$Detailed
+    )
+
+	$ObjectDetails = Get-PrtgObjectDetails $ObjectId
+		
+	if ($ObjectDetails.interval) {
+		if ($ObjectDetails.interval -eq "(Object not found)") {
+			# well, why didn't you just say so
+			return $ObjectDetails.sensortype
+		} else {
+			# if it reports an interval, it's a sensor
+			if ($Detailed) {
+				return ("sensor: " + $ObjectDetails.sensortype)
+			} else {
+				return "sensor"
+			}
+		}
+	} else {
+		# if it doesn't, the sensortype says what it is
+		return $ObjectDetails.sensortype
+	}
+}
+
+###############################################################################
+
+function Get-PrtgObjectDetails {
+	<#
+	.SYNOPSIS
+		
+	.DESCRIPTION
+		
+	.EXAMPLE
+		
+	#>
+
+    Param (
+        [Parameter(Mandatory=$True,Position=0)]
+        [int]$ObjectId,
+		
+        [Parameter(Mandatory=$False)]
+        [string]$Value
+    )
+
     BEGIN {
 		$PRTG = $Global:PrtgServerObject
 		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
     }
 
     PROCESS {
-		$url = HelperURLBuilder "table.xml" (
-			"&content=devices",
-			"&output=xml",
-			"&columns=objid,probe"
+		$url = HelperURLBuilder "getsensordetails.xml" (
+			"&id=$ObjectId"
 		)
 
         $global:lasturl = $url
         
 		$QueryObject = HelperHTTPQuery $url -AsXML
-		$Data = $QueryObject.Data
-
-        return ($Data.devices.item | where {$_.objid -eq "$DeviceId"}).probe
+		$Data = $QueryObject.Data.sensordata.psobject.properties | ? { $_.TypeNameOfValue -eq "System.Xml.XmlElement" }
+	
+		$ListOfNames = ($Data | select name).name
+		$ListOfValues = (($Data | select value).value)."#cdata-section"
+		
+		$i = 0
+		
+		while ($i -lt $ListOfNames.Count) {
+			$Return += @{$ListOfNames[$i]=$ListOfValues[$i]}
+			$i++
+		}
+		
+		if ($Value) {
+			$Return.$Value
+		} else {
+			$Return
+		}
     }
 }
-
 
 ###############################################################################
 
@@ -574,66 +581,118 @@ function Get-PrtgTableData {
 	#>
 
 	Param (
-		[Parameter(Mandatory=$True,Position=0)]
-		[int]$ObjectId,
+		[Parameter(Mandatory=$false,Position=0)]
+		[int]$ObjectId = 0,
 		
 		[Parameter(Mandatory=$True,Position=1)]
-		[string]$Content
+		[ValidateSet("devices","groups","sensors","todos","messages","values","channels","history")]
+		[string]$Content,
+		
+		[Parameter(Mandatory=$False)]
+		[string[]]$Columns,
+		
+		[Parameter(Mandatory=$False)]
+		[string[]]$FilterTags,
+		
+		[Parameter(Mandatory=$False)]
+		[switch]$Raw
 	)
 
 	BEGIN {
 		$PRTG = $Global:PrtgServerObject
 		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
 		
-		$TableValues = "sensortree","devices","groups","sensors","todos","messages","values","channels","reports","maps","storedreports","history"
-		$TableColumns = @(""),
-			@("objid","probe","group","device","host","downsens","partialdownsens","downacksens","upsens","warnsens","pausedsens","unusualsens","undefinedsens"),
-			@("objid","probe","group","name","downsens","partialdownsens","downacksens","upsens","warnsens","pausedsens","unusualsens","undefinedsens"),
-			@("objid","probe","group","device","sensor","status","message","lastvalue","priority","favorite"),
-			@("objid","datetime","name","status","priority","message"),
-			@("objid","datetime","parent","type","name","status","message"),
-			@("datetime","value_","coverage"),
-			@("name","lastvalue","lastvalue_raw"),
-			@("objid","name","template","period","schedule","email","lastrun","nextrun"),
-			@("objid","name"),
-			@("name","datetime","size"),
-			@("dateonly","timeonly","user","message")
-		
-		$PRTGTableBuilder = @()
-
-		for ($i = 0; $i -le $TableValues.Count; $i++) {
-			$ThisRow = "" | Select-Object @{ n='content'; e={ $TableValues[$i] } },@{ n='columns'; e={ $TableColumns[$i] } }
-			$PRTGTableBuilder += $ThisRow
+		if ($Content -eq "sensors" -and $FilterTags) {
+			$FilterString = ""
+			
+			foreach ($tag in $FilterTags) {
+				$FilterString += "&filter_tags=" + $tag
+			}
 		}
+		
+		if (!$Columns) {
+		
+			# this was pulled mostly from the API doc, with some minor adjustments
+			# this function currently doesn't work "sensortree" or any of the nonspecific values: "reports","maps","storedreports"
+			
+			$TableValues = "devices","groups","sensors","todos","messages","values","channels","history"
+			$TableColumns =
+				@("objid","probe","group","device","host","downsens","partialdownsens","downacksens","upsens","warnsens","pausedsens","unusualsens","undefinedsens"),
+				@("objid","probe","group","name","downsens","partialdownsens","downacksens","upsens","warnsens","pausedsens","unusualsens","undefinedsens"),
+				@("objid","probe","group","device","sensor","status","message","lastvalue","lastvalue_raw","priority","favorite"),
+				@("objid","datetime","name","status","priority","message"),
+				@("objid","datetime","parent","type","name","status","message"),
+				@("datetime","value_","coverage"),
+				@("name","lastvalue","lastvalue_raw"),
+				@("dateonly","timeonly","user","message")
+			
+			$PRTGTableBuilder = @()
+			
+			for ($i = 0; $i -le $TableValues.Count; $i++) {
+				$ThisRow = "" | Select-Object @{ n='content'; e={ $TableValues[$i] } },@{ n='columns'; e={ $TableColumns[$i] } }
+				$PRTGTableBuilder += $ThisRow
+			}
+			
+			$SelectedColumns = ($PRTGTableBuilder | ? { $_.content -eq $Content }).columns
+		} else {
+			$SelectedColumns = $Columns
+		}
+		
+		$SelectedColumnsString = $SelectedColumns -join ","
 	}
 
 	PROCESS {
 	
-		$SelectedColumns = ($PRTGTableBuilder | ? { $_.content -eq $Content }).columns
-		$SelectedColumnsString = $SelectedColumns -join ","
-	
 		$url = HelperURLBuilder "table.xml" (
 			"&content=$Content",
 			"&columns=$SelectedColumnsString",
-			"&id=$ObjectId"
+			"&id=$ObjectId",
+			$FilterString
 		)
 
 		$Global:LastUrl = $Url
 
+		if ($Raw) {
+			$QueryObject = HelperHTTPQuery $url
+			return $QueryObject.Data
+		}
+		
 		$QueryObject = HelperHTTPQuery $url -AsXML
 		$Data = $QueryObject.Data
 		
 		$ReturnData = @()
-
+		
 		foreach ($item in $Data.$Content.item) {
 			$ThisRow = "" | Select-Object $SelectedColumns
 			foreach ($Prop in $SelectedColumns) {
-				$ThisRow.$Prop = $item.$Prop
+				if ($Content -eq "channels" -and $Prop -eq "lastvalue_raw") {
+					$ThisRow.$Prop = HelperFormatHandler $item.$Prop
+				} else {
+					$ThisRow.$Prop = $item.$Prop
+				}
+				#$ThisRow.$Prop = $item.$Prop
 			}
 			$ReturnData += $ThisRow
 		}
 
-		return $ReturnData
+		if ($ReturnData.name -eq "Item" -or (!($ReturnData.ToString()))) {
+			$DeterminedObjectType = Get-PrtgObjectType $ObjectId
+			
+			$ValidQueriesTable = @{
+				group=@("devices","groups","sensors","todos","messages","values","history")
+				probenode=@("devices","groups","sensors","todos","messages","values","history")
+				device=@("sensors","todos","messages","values","history")
+				sensor=@("messages","values","channels","history")
+				report=@("Currently unsupported")
+				map=@("Currently unsupported")
+				storedreport=@("Currently unsupported")
+			}
+			
+			Write-Host "No $Content; Object $ObjectId is type $DeterminedObjectType"
+			Write-Host (" Valid query types: " + ($ValidQueriesTable.$DeterminedObjectType -join ", "))
+		} else {
+			return $ReturnData
+		}
 	}
 }
 
@@ -780,6 +839,15 @@ function Get-PrtgSensorHistoricData {
 		$QueryObject = HelperHTTPQuery $url -AsXML
 		$Data = $QueryObject.Data
 		
+		# get all channel names returned from history
+		$AllChannels = $Data.SelectNodes("/histdata/item[1]//@*") | Select -ExpandProperty "#text" -Unique
+		
+		# get date from each item node
+		$AllDates = $Data.SelectNodes("/histdata/item/datetime")
+		
+		
+		# foreach ($allchannels) { select each channel (as below), add to object }
+		
 		#return ($Response.SelectNodes("/histdata/item/value_raw[@channel='$ChannelName']") | Measure-Object -Property "#text" -Average).Average
 		return $Data.SelectNodes("/histdata/item/value_raw[@channel='$ChannelName']") | Select @{
 			n = $ChannelName;
@@ -924,9 +992,11 @@ function HelperFormatTest {
 
 function HelperFormatHandler {
     Param (
-        [Parameter(Mandatory=$True,Position=0)]
+        [Parameter(Mandatory=$False,Position=0)]
         $InputData
 	)
+	
+	if (!$InputData) { return }
 	
 	if ($Global:PrtgServerObject.RawFormatError) {
 		# format includes the quirk
