@@ -2,6 +2,7 @@
 ## API Functions
 ###############################################################################
 
+
 function Get-PrtgServer {
 	<#
 	.SYNOPSIS
@@ -62,10 +63,12 @@ function Get-PrtgServer {
 		$Return.IsAdminUser  = $Data.status.IsAdminUser
 		$Return.ReadOnlyUser = $Data.status.ReadOnlyUser
         
-		$StoredConfiguration = $Return | Select-Object Server,Port,UserName,Protocol,Version,Clock,IsCluster,IsAdminUser,ReadOnlyUser,PassHash
+		$StoredConfiguration = $Return | Select-Object *,PassHash
         $StoredConfiguration.PassHash = $PassHash
 		
         $global:PrtgServerObject = $StoredConfiguration
+		
+		HelperFormatTest
 
 		# this is just to be pretty; doesn't contain the passhash
         return $Return
@@ -505,7 +508,11 @@ function Get-PrtgSensorChannels {
 		foreach ($item in $Data.channels.item) {
 			$Channel = "" | Select-Object $ChannelProperties
 			foreach ($Prop in $ChannelProperties) {
-				$Channel.$Prop = $item.$Prop
+				if ($Prop -eq "lastvalue_raw") {
+					$Channel.$Prop = HelperFormatHandler $item.$Prop
+				} else {
+					$Channel.$Prop = $item.$Prop
+				}
 			}
 			$Channels += $Channel
 		}
@@ -893,6 +900,42 @@ function HelperURLBuilder {
 	return $Return
 }
 
+function HelperFormatTest {
+	$URLKeeper = $global:lasturl
+	
+	$CoreHealthChannels = Get-PrtgSensorChannels 1002
+	$HealthPercentage = $CoreHealthChannels | ? {$_.name -eq "Health" }
+	$ValuePretty = [int]$HealthPercentage.lastvalue.Replace("%","")
+	$ValueRaw = [int]$HealthPercentage.lastvalue_raw
+	
+	if ($ValueRaw -eq $ValuePretty) {
+		$RawFormatError = $false
+	} else {
+		$RawFormatError = $true
+	}
+	
+	$global:lasturl = $URLKeeper
+	
+	$StoredConfiguration = $Global:PrtgServerObject | Select-Object *,RawFormatError
+	$StoredConfiguration.RawFormatError = $RawFormatError
+
+	$global:PrtgServerObject = $StoredConfiguration
+}
+
+function HelperFormatHandler {
+    Param (
+        [Parameter(Mandatory=$True,Position=0)]
+        $InputData
+	)
+	
+	if ($Global:PrtgServerObject.RawFormatError) {
+		# format includes the quirk
+		return [double]$InputData.Replace("0.",".")
+	} else {
+		# format doesn't include the quirk, pass it back
+		return [double]$InputData
+	}
+}
 
 ###############################################################################
 ## PowerShell Module Functions
