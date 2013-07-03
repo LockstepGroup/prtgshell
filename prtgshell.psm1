@@ -682,7 +682,6 @@ function Resume-PrtgObject {
 # This is definitely incomplete but works in extremely limited use cases
 # todo:
 #   adjust "avg" value, which sets the interval of data returned
-#   included timestamp on each line of returned data
 
 function Get-PrtgSensorHistoricData {
 	<#
@@ -702,7 +701,7 @@ function Get-PrtgSensorHistoricData {
         [Parameter(Mandatory=$True,Position=1)]
         [int]$HistoryInDays,
 		
-		[Parameter(Mandatory=$True,Position=2)]
+		[Parameter(Mandatory=$false,Position=2)]
         [string]$ChannelName
     )
 
@@ -728,24 +727,82 @@ function Get-PrtgSensorHistoricData {
 		$QueryObject = HelperHTTPQuery $url -AsXML
 		$Data = $QueryObject.Data
 		
-		# get all channel names returned from history
-		$AllChannels = $Data.SelectNodes("/histdata/item[1]//@*") | Select -ExpandProperty "#text" -Unique
-		
-		# get date from each item node
-		$AllDates = $Data.SelectNodes("/histdata/item/datetime")
-		
-		
-		# foreach ($allchannels) { select each channel (as below), add to object }
-		
-		#return ($Response.SelectNodes("/histdata/item/value_raw[@channel='$ChannelName']") | Measure-Object -Property "#text" -Average).Average
-		return $Data.SelectNodes("/histdata/item/value_raw[@channel='$ChannelName']") | Select @{
-			n = $ChannelName;
-			e = { $_."#text" }
+		$ValidData = $Data.histdata.item | ? { $_.coverage_raw -ne '0000000000' }
+
+		$DataPoints = @()
+
+		foreach ($v in $ValidData) {
+			$Channels = @()
+			foreach ($val in $v.value) {
+				$NewChannel          = "" | Select Channel,Value
+				$NewChannel.Channel  = $val.channel
+				$NewChannel.Value    = $val.'#text'
+				$Channels           += $NewChannel
+			}
+
+			$ChannelsRaw = @()
+			foreach ($vr in $v.value_raw) {
+				$NewChannel          = "" | Select Channel,Value
+				$NewChannel.Channel  = $vr.channel
+				$NewChannel.Value    = [double]$vr.'#text'
+				$ChannelsRaw        += $NewChannel
+			}
+
+			$New             = "" | Select DateTime,Channels,ChannelsRaw
+			$New.Datetime    = [DateTime]::Parse(($v.datetime.split("-"))[0]) # need to do a datetime conversion here
+			$New.Channels    = $Channels
+			$New.ChannelsRaw = $ChannelsRaw
+
+			$DataPoints += $New
 		}
+
+	}
+	
+	END {
+		return $DataPoints
     }
 }
 
 
+function Measure-PRTGStorage {
+
+    Param (
+        [Parameter(Mandatory=$True,Position=0)]
+        [int]$HistorySensorObjectId,
+
+        [Parameter(Mandatory=$False,Position=1)]
+        [int]$HistoryInDays = 30
+    )
+	
+	$ObjectDetails = Get-PrtgObjectDetails $HistorySensorObjectId
+	
+	if ($ObjectDetails.sensortype -ne "exexml") {
+		return " Selected sensor object (" + $HistorySensorObjectId + ": " + $ObjectDetails.name + ") is not the proper type."
+	}
+
+	$HistorySensorData = Get-PrtgSensorHistoricData $HistorySensorObjectId $HistoryInDays
+
+	$OldestDataPointDate = $HistorySensorData[0].DateTime
+	$OldestDataPointSize = ($HistorySensorData[0].ChannelsRaw | ? { $_.Channel -match "History Size$" }).Value
+
+	$NewestDataPointDate = $HistorySensorData[$HistorySensorData.Count-1].DateTime
+	$NewestDataPointSize = ($HistorySensorData[$HistorySensorData.Count-1].ChannelsRaw | ? { $_.Channel -match "History Size$" }).Value
+
+	$HistorySizeGain = $NewestDataPointSize - $OldestDataPointSize
+	$MeasuredPeriod = $NewestDataPointDate - $OldestDataPointDate
+
+	$DailyGrowthRate = $HistorySizeGain / $MeasuredPeriod.TotalDays
+	$RemainingDiskFree = ($HistorySensorData[$HistorySensorData.Count-1].ChannelsRaw | ? { $_.Channel -match "Disk Free$" }).Value
+	$MonitorableDaysAtCurrentGrowthRate = $RemainingDiskFree / $DailyGrowthRate
+
+	if ($MonitorableDaysAtCurrentGrowthRate) {
+		Write-Host " PRTG has" ("{0:N}" -f $RemainingDiskFree) "GB remaining disk available and" ("{0:N}" -f $NewestDataPointSize) "GB of monitoring data stored."
+		Write-Host " The history size monitor reports an average daily growth rate of" ("{0:N}" -f $DailyGrowthRate) "GB over a period of" ("{0:N}" -f $MeasuredPeriod.TotalDays) "days."
+		Write-Host " There is enough space available to store monitoring data for" ("{0:N}" -f $MonitorableDaysAtCurrentGrowthRate) "days."
+	} else {
+		Write-Host " Sensor does not appear to be a history database size monitor sensor."
+	}
+}
 
 
 
