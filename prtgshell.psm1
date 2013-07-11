@@ -1019,7 +1019,48 @@ function Rename-PrtgObject {
 }
 
 ###############################################################################
+# these have also not been extensively tested
 
+
+
+function Get-PrtgSensorTree {
+    Param (
+        [Parameter(Mandatory=$False,Position=0)]
+        [int]$ObjectId,
+		
+        [Parameter(Mandatory=$False,Position=1)]
+        [string]$Value
+    )
+
+    BEGIN {
+		$PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+    }
+
+    PROCESS {
+		$url = HelperURLBuilder "table.xml" (
+			"&content=sensortree"
+		)
+
+        $global:lasturl = $url
+        
+		$QueryObject = HelperHTTPQuery $url -AsXML
+		
+		return $QueryObject
+    }
+}
+
+
+function Get-PRTGProbes {
+	$data = Get-PrtgSensorTree
+	foreach ($node in $data.data.prtg.sensortree.nodes.group.probenode) {
+		$node | Select-Object @{n='objid';e={ $_.id[0] }},name
+	}
+}
+
+
+
+###############################################################################
 
 
 
