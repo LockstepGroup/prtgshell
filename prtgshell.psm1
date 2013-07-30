@@ -860,7 +860,10 @@ function Set-PrtgResult {
     
     [Parameter(mandatory=$False)]
     [alias('w')]
-    [switch]$Warning
+    [switch]$Warning,
+    
+    [Parameter(mandatory=$False)]
+    [string]$ValueLookup
     )
     
     $StandardUnits = @("BytesBandwidth","BytesMemory","BytesDisk","Temperature","Percent","TimeResponse","TimeSeconds","Custom","Count","CPU","BytesFile","SpeedDisk","SpeedNet","TimeHours")
@@ -889,6 +892,7 @@ function Set-PrtgResult {
     if ($SpeedSize)   { $Result += "    <speedsize>$SpeedSize</speedsize>`n" }
     if ($DecimalMode) { $Result += "    <decimalmode>$DecimalMode</decimalmode>`n" }
     if ($Warning)     { $Result += "    <warning>1</warning>`n" }
+    if ($ValueLookup) { $Result += "    <ValueLookup>$ValueLookup</ValueLookup>`n" }
     
     if (!($ShowChart)) { $Result += "    <showchart>0</showchart>`n" }
     
