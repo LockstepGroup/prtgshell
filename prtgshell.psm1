@@ -1063,6 +1063,28 @@ function Get-PRTGProbes {
 }
 
 
+function Remove-PrtgSensorNumbers {
+    Param (
+        [Parameter(Mandatory=$True,Position=0)]
+        [int]$ObjectId
+	)
+	
+	$ObjectType = (Get-PrtgObjectDetails $ObjectId).sensortype
+	
+	if ($ObjectType -eq "device") {
+
+		$ObjectSensors = Get-PrtgTableData sensors $ObjectId | select objid,sensor
+		$regex = [regex]"\s\d+$"
+
+		foreach ($Sensor in $ObjectSensors) {
+			$SensorName = $Sensor.sensor -replace $regex
+			
+			Set-PrtgObjectProperty -ObjectId $Sensor.objid -Property name -Value $SensorName
+		}
+	} else {
+		Write-Error "Object must be a device; provided object is type $ObjectType."
+	}
+}
 
 ###############################################################################
 
