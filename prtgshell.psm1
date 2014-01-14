@@ -805,6 +805,59 @@ function Measure-PRTGStorage {
 }
 
 
+###############################################################################
+# this needs to be combined somehow with "Move-PrtgObject" from above
+# if you want positional changes, you give the string nouns
+# if you want group changes, you give an integer for the target objectid
+
+function Move-PrtgObject2 {
+	<#
+	.SYNOPSIS
+		
+	.DESCRIPTION
+		
+	.EXAMPLE
+		
+	#>
+
+    Param (
+        [Parameter(Mandatory=$True,Position=0)]
+		[alias('SensorId')]
+        [int]$ObjectId,
+
+        [Parameter(Mandatory=$True,Position=1)]
+        [string]$TargetId
+    )
+
+    BEGIN {
+		$PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+		$WebClient = New-Object System.Net.WebClient
+    }
+
+    PROCESS {
+		$url = HelperURLBuilder "moveobject.htm" (
+			"&id=$ObjectId",
+			"&targetid=$TargetId"
+		)
+
+        $global:lasturl = $url
+        
+        $NewIdRx = [regex] '(?<=id%3D)\d+'
+        
+		###########################################
+		# can we let the http function handle this?
+		
+        $Req = [system.net.httpwebrequest]::create($url)
+        $Res = $Req.GetResponse()
+        if ($Res.StatusCode -eq "OK") {
+            return $NewIDRx.Match($Res.ResponseUri.PathAndQuery).value
+        } else {
+            Throw "Error Accessing Page $WebPage"
+        }
+    }
+}
+
 
 ###############################################################################
 # custom exe/xml functions
