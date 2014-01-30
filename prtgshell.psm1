@@ -1144,6 +1144,41 @@ function Remove-PrtgSensorNumbers {
 }
 
 
+
+function Invoke-PrtgObjectDiscovery {
+        <#
+        .SYNOPSIS
+                
+        .DESCRIPTION
+                
+        .EXAMPLE
+                
+        #>
+
+    Param (
+        [Parameter(Mandatory=$True,Position=0)]
+        [int]$ObjectId
+    )
+
+    BEGIN {
+                $PRTG = $Global:PrtgServerObject
+                if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+                $WebClient = New-Object System.Net.WebClient
+    }
+
+    PROCESS {
+                $url = HelperURLBuilder "discovernow.htm" (
+                        "&id=$ObjectId"
+                )
+
+        $global:lasturl = $url
+        $global:Response = $WebClient.DownloadString($url)
+
+        return $global:Response -replace "<[^>]*?>|<[^>]*>", ""
+    }
+}
+
+
 ###############################################################################
 
 
