@@ -461,7 +461,7 @@ function Set-PrtgObjectProperty {
         $global:lasturl = $url
         $global:Response = $WebClient.DownloadString($url)
 
-        return $global:Response
+        return $global:Response -replace "<[^>]*?>|<[^>]*>", ""
     }
 }
 
