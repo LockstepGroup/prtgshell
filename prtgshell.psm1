@@ -616,7 +616,8 @@ function Remove-PrtgObject {
 
     Param (
         [Parameter(Mandatory=$True,Position=0)]
-        [int]$ObjectId
+        $ObjectId
+        #TODO: document this; $ObjectID for this cmdlet can either be a single integer or a comma-separated string of integers to handle multiples
     )
 
     BEGIN {
