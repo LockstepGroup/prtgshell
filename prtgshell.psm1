@@ -425,14 +425,14 @@ function Get-PrtgTableData {
 ###############################################################################
 
 function Set-PrtgObjectProperty {
-	<#
-	.SYNOPSIS
-		
-	.DESCRIPTION
-		
-	.EXAMPLE
-		
-	#>
+        <#
+        .SYNOPSIS
+                
+        .DESCRIPTION
+                
+        .EXAMPLE
+                
+        #>
 
     Param (
         [Parameter(Mandatory=$True,Position=0)]
@@ -446,24 +446,24 @@ function Set-PrtgObjectProperty {
     )
 
     BEGIN {
-		$PRTG = $Global:PrtgServerObject
-		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-		$WebClient = New-Object System.Net.WebClient
+                $PRTG = $Global:PrtgServerObject
+                if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+                $WebClient = New-Object System.Net.WebClient
     }
 
     PROCESS {
-		$url = HelperURLBuilder "setobjectproperty.htm" (
-			"&id=$ObjectId",
-			"&name=$Property",
-			"&value=$Value"
-		)
-		
+                $url = HelperURLBuilder "setobjectproperty.htm" (
+                        "&id=$ObjectId",
+                        "&name=$Property",
+                        "&value=$Value"
+                )
+                
         $global:lasturl = $url
-        $global:Response = $WebClient.DownloadString($url)
+        $global:Response = ($WebClient.DownloadString($url)) -replace "<[^>]*?>|<[^>]*>", ""
 
-        return $global:Response -replace "<[^>]*?>|<[^>]*>", ""
+        return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
     }
-}
+
 
 ###############################################################################
 
