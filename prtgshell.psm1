@@ -463,6 +463,7 @@ function Set-PrtgObjectProperty {
 
         return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
     }
+}
 
 
 ###############################################################################
