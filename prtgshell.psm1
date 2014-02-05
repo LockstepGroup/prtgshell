@@ -870,7 +870,7 @@ function Set-PrtgResult {
     [string]$Channel,
     
     [Parameter(mandatory=$True,Position=1)]
-    [string]$Value,
+    $Value,
     
     [Parameter(mandatory=$True,Position=2)]
     [string]$Unit,
