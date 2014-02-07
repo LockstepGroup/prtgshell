@@ -958,6 +958,22 @@ function Set-PrtgResult {
 
 
 
+function Set-PrtgError {
+	Param (
+		[Parameter(Position=0)]
+		[string]$PrtgErrorText
+	)
+	
+	@"
+<prtg>
+  <error>1</error>
+  <text>$PrtgErrorText</text>
+</prtg>
+"@
+
+exit
+}
+
 
 
 ###############################################################################
