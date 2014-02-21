@@ -907,6 +907,10 @@ function Set-PrtgResult {
     [alias('ss')]
     [ValidateSet("One","Kilo","Mega","Giga","Tera","Byte","KiloByte","MegaByte","GigaByte","TeraByte","Bit","KiloBit","MegaBit","GigaBit","TeraBit")]
     [string]$SpeedSize,
+
+	[Parameter(mandatory=$False)]
+    [ValidateSet("One","Kilo","Mega","Giga","Tera","Byte","KiloByte","MegaByte","GigaByte","TeraByte","Bit","KiloBit","MegaBit","GigaBit","TeraBit")]
+    [string]$VolumeSize,
     
     [Parameter(mandatory=$False)]
     [alias('dm')]
@@ -935,7 +939,6 @@ function Set-PrtgResult {
         $Result += "    <customunit>$Unit</customunit>`n"
     }
     
-    #<SpeedSize>
 	if (!($Value -is [int])) { $Result += "    <float>1</float>`n" }
     if ($Mode)        { $Result += "    <mode>$Mode</mode>`n" }
     if ($MaxWarn)     { $Result += "    <limitmaxwarning>$MaxWarn</limitmaxwarning>`n"; $LimitMode = $true }
@@ -945,6 +948,7 @@ function Set-PrtgResult {
     if ($ErrorMsg)    { $Result += "    <limiterrormsg>$ErrorMsg</limiterrormsg>`n"; $LimitMode = $true }
     if ($LimitMode)   { $Result += "    <limitmode>1</limitmode>`n" }
     if ($SpeedSize)   { $Result += "    <speedsize>$SpeedSize</speedsize>`n" }
+    if ($VolumeSize)  { $Result += "    <volumesize>$VolumeSize</volumesize>`n" }
     if ($DecimalMode) { $Result += "    <decimalmode>$DecimalMode</decimalmode>`n" }
     if ($Warning)     { $Result += "    <warning>1</warning>`n" }
     if ($ValueLookup) { $Result += "    <ValueLookup>$ValueLookup</ValueLookup>`n" }
