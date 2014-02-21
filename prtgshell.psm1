@@ -974,6 +974,123 @@ function Set-PrtgError {
 exit
 }
 
+function New-PrtgSnmpTrafficSensor {
+    Param (
+        [Parameter(Mandatory=$True)]
+        [string]$Name,
+
+        [Parameter(Mandatory=$True)]
+        [int]$InterfaceNumber,
+
+        [Parameter(Mandatory=$True)]
+        [int]$ParentId,
+
+        [Parameter(Mandatory=$False)]
+        [string]$Tags,
+
+        [Parameter(Mandatory=$False)]
+        [ValidateRange(1,5)] 
+        [int]$Priority = 3,
+
+        [Parameter(Mandatory=$False)]
+        [int]$Interval = 60,
+
+        [Parameter(Mandatory=$False)]
+        [ValidateSet("Independent","Stacked","PosNeg")]
+        [String]$ChartType = "Independent",
+
+        [Parameter(Mandatory=$False)]
+        [switch]$ErrorOnDown = $True,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$ShowErrors,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$ShowDiscards,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$ShowUnicast,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$ShowNonUnicast,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$ShowMulticast,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$ShowBroadcast,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$ShowUnknown
+    )
+
+    BEGIN {
+        Add-Type -AssemblyName System.Web # Needed for System.Web.HttpUtility
+        $PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+    }
+
+    PROCESS {
+
+    
+        ###############################################################################
+        # build the post data payload/query string
+        # note that "$QueryString.ToString()" actually builds this
+
+        $QueryStringTable = @{
+	        "name_"                  = $Name
+	        "tags_"                  = "prtgshell snmptrafficsensor bandwidthsensor $Tags"
+	        "priority_"              = $Priority
+            "interfacenumber_"       = 1
+            "interfacenumber__check" = "$InterfaceNumber`:$Name|$Name|Connected|1 GBit/s|Ethernet|1|$Name|1000000000|3|2|" # don't know what the 3|2 are, or if the other bits matter
+            "namein_"                = "Traffic In"
+            "nameout_"               = "Traffic Out"
+            "namesum_"               = "Traffic Total"
+            "stack_"                 = 0
+	        "intervalgroup"          = 1
+	        "interval_"              = "$Interval|$Interval seconds"
+	        "inherittriggers"        = 1
+	        "id"                     = $ParentId
+	        "sensortype"             = "snmptraffic"
+        }
+
+        # create a blank, writable HttpValueCollection object
+        $QueryString = [System.Web.httputility]::ParseQueryString("")
+
+        # iterate through the hashtable and add the values to the HttpValueCollection
+        foreach ($Pair in $QueryStringTable.GetEnumerator()) {
+	        $QueryString[$($Pair.Name)] = $($Pair.Value)
+        }
+
+        $QueryString = $QueryString.ToString()
+
+        ###############################################################################
+        # Add TrafficMode
+
+        $TrafficMode = @()
+        if ($ShowErrors)     { $TrafficMode += "errors"     }
+        if ($ShowDiscards)   { $TrafficMode += "discards"   }
+        if ($ShowUnicast)    { $TrafficMode += "unicast"    }
+        if ($ShowNonUnicast) { $TrafficMode += "nonunicast" }
+        if ($ShowMulticast)  { $TrafficMode += "multicast"  }
+        if ($ShowBroadcast)  { $TrafficMode += "broadcast"  }
+        if ($ShowUnknown)    { $TrafficMode += "unknown"    }
+
+        foreach ($t in $TrafficMode) {
+            $data += "&trafficmode_=$t"
+        }
+
+        ###############################################################################
+        # fire the api call
+
+        $Url  = "https://$($PRTG.Server)"
+        $Url += "/addsensor5.htm?"
+        $Url += "username=$($PRTG.UserName)&"
+        $Url += "passhash=$($PRTG.PassHash)"
+   
+        HelperHTTPPostCommand $Url $QueryString.ToString() | Out-Null
+    }
+}
 
 
 ###############################################################################
