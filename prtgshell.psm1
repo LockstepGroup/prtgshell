@@ -1062,8 +1062,6 @@ function New-PrtgSnmpTrafficSensor {
 	        $QueryString[$($Pair.Name)] = $($Pair.Value)
         }
 
-        $QueryString = $QueryString.ToString()
-
         ###############################################################################
         # Add TrafficMode
 
@@ -1077,7 +1075,7 @@ function New-PrtgSnmpTrafficSensor {
         if ($ShowUnknown)    { $TrafficMode += "unknown"    }
 
         foreach ($t in $TrafficMode) {
-            $data += "&trafficmode_=$t"
+            $QueryString.Add("trafficmode_",$t)
         }
 
         ###############################################################################
@@ -1417,6 +1415,71 @@ function New-PrtgSensor {
 
 ###############################################################################
 
+function New-PrtgSnmpCpuLoadSensor {
+    Param (
+        [Parameter(Mandatory=$True)]
+        [string]$Name,
+
+        [Parameter(Mandatory=$True)]
+        [int]$ParentId,
+
+        [Parameter(Mandatory=$False)]
+        [string]$Tags,
+
+        [Parameter(Mandatory=$False)]
+        [ValidateRange(1,5)] 
+        [int]$Priority = 3,
+
+        [Parameter(Mandatory=$False)]
+        [int]$Interval = 60
+    )
+
+    BEGIN {
+        Add-Type -AssemblyName System.Web # Needed for System.Web.HttpUtility
+        $PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+    }
+
+    PROCESS {
+
+    
+        ###############################################################################
+        # build the post data payload/query string
+        # note that "$QueryString.ToString()" actually builds this
+
+        if ($Tags) { $Tags = "$Tags snmp cpu cpuloadsensor" } `
+              else { $Tags = "snmp cpu cpuloadsensor"       }
+
+        $QueryStringTable = @{
+	        "name_"                  = $Name
+	        "tags_"                  = $Tags
+	        "priority_"              = $Priority
+	        "intervalgroup"          = 1
+	        "interval_"              = "$Interval|$Interval seconds"
+	        "inherittriggers"        = 1
+	        "id"                     = $ParentId
+	        "sensortype"             = "snmpcpu"
+        }
+
+        # create a blank, writable HttpValueCollection object
+        $QueryString = [System.Web.httputility]::ParseQueryString("")
+
+        # iterate through the hashtable and add the values to the HttpValueCollection
+        foreach ($Pair in $QueryStringTable.GetEnumerator()) {
+	        $QueryString[$($Pair.Name)] = $($Pair.Value)
+        }
+
+        ###############################################################################
+        # fire the api call
+
+        $Url  = "https://$($PRTG.Server)"
+        $Url += "/addsensor5.htm?"
+        $Url += "username=$($PRTG.UserName)&"
+        $Url += "passhash=$($PRTG.PassHash)"
+   
+        HelperHTTPPostCommand $Url $QueryString.ToString() | Out-Null
+    }
+}
 
 
 ###############################################################################
