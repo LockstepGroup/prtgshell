@@ -1,9 +1,6 @@
 ﻿remove-module prtgshell
 import-module C:\dev\prtgshell\prtgshell.psm1 -Verbose
 
-$Server      = "athena.addicks.us"
-$User        = "brian"
-$Hash        = "2485307868"
 $PrtgConnect = Get-PrtgServer $Server $User $Hash
 
 $SensorObject                 = "" | Select Name,Tags,Priority,Script,ExeParams,Environment,SecurityContext,Mutex,ExeResult,ParentId
