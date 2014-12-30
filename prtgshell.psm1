@@ -679,6 +679,50 @@ function Resume-PrtgObject {
 }
 
 
+###############################################################################
+
+
+function Pause-PrtgObject {
+	<#
+	.SYNOPSIS
+		
+	.DESCRIPTION
+		
+	.EXAMPLE
+		
+	#>
+
+    Param (
+        [Parameter(Mandatory=$True,Position=0)]
+        [int]$ObjectId,
+	[Parameter(Mandatory=$False,Position=1)]
+        [string]$PauseMessage = ""
+    )
+
+    BEGIN {
+		$PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+		$WebClient = New-Object System.Net.WebClient
+    }
+
+    PROCESS {
+		$url = HelperURLBuilder "pause.htm" (
+			"&id=$ObjectId",
+			"&pausemsg=$PauseMessage",
+			"&action=0"
+		)
+
+        $global:lasturl = $url
+        $global:Response = $WebClient.DownloadString($url)
+
+		###########################################
+		# this needs a handler; the output is silly
+        return $global:Response
+    }
+}
+
+
+
 
 ###############################################################################
 # This is definitely incomplete but works in extremely limited use cases
