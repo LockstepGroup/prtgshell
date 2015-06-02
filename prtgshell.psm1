@@ -1539,7 +1539,7 @@ function New-PrtgSnmpCpuLoadSensor {
 function HelperSSLConfig {
 	[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}
 	[System.Net.ServicePointManager]::Expect100Continue = {$true}
-	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::ssl3
+	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls
 }
 
 function HelperHTTPQuery {
