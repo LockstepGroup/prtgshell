@@ -110,7 +110,145 @@ function Get-PrtgServer {
 }
 Set-Alias Connect-PrtgServer Get-PrtgServer
 
+function Get-PrtgServerStatus {
+	<#
+	.SYNOPSIS
+		Get current system status
+		
+	.DESCRIPTION
+		This a lightweight call to get status data like number of alarms, messages.
+	
+	.EXAMPLE
+		Get-PrtgServerStatus
+		
+	#>
+
+	[CmdletBinding()]
+	Param (
+			[Parameter(Mandatory=$False)]
+			[switch]$Raw
+	)
+
+	BEGIN {
+		$PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+	}
+	
+	PROCESS {
+		$url = HelperURLBuilder "getstatus.xml" (
+			"&id=0"
+		)
+
+		$global:lasturl = $url
+		
+		if ($Raw) {
+			$QueryObject = HelperHTTPQuery $url
+			$QueryObject.Data
+		}
+		Else {
+			$QueryObject = HelperHTTPQuery $url -AsXML
+			
+			Write-Debug $QueryObject.Data.Status
+			
+			Return $QueryObject.Data.Status
+			break
+			
+			$Data = $QueryObject.Data.status.psobject.properties | ? { $_.TypeNameOfValue -eq "System.Xml.XmlElement" }
+		
+			$ListOfNames = $Data | ForEach-Object { $_.Name }
+			$ListOfValues = $Data | ForEach-Object { $_.Value."#cdata-section" }
+			
+			Write-Debug $ListOfNames
+			Write-Debug $ListOfValues
+
+			$i = 0
+			
+			while ($i -lt $ListOfNames.Count) {
+				$Return += @{$ListOfNames[$i]=$ListOfValues[$i]}
+				$i++
+			}
+			
+			if ($Value) {
+				$Return.$Value
+			} else {
+				[Collections.SortedList]$Return
+			}
+		}
+	}
+	
+}
+
 ###############################################################################
+
+function Get-PrtgDeviceByHostname {
+	<#
+	.SYNOPSIS
+		Find PRTG device with hostname
+	.DESCRIPTION
+		Find PRTG device which matches hostname, IP Address, or FQDN.
+	
+	.EXAMPLE
+
+	#>
+
+		[CmdletBinding()]
+		Param(		
+				#  string to search devices
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+				[Alias('IPAddress','FQDN')]
+        [String] $hostname,
+				
+				[Parameter()]
+				[Alias('Id','AsId')]
+    		[Switch] $AsObjID
+		)
+    
+    # Try to get the PRTG device tree
+    try{
+        $prtgDeviceTree = Get-PrtgTableData -content "devices"
+				Write-Verbose "Device tree count: $prtgDeviceTree.Count"
+    }catch{
+        Write-Error "Failed to get PRTG Device tree $($_.exception.message)";
+        return $false;
+    }
+    
+    $fqdn = $null;
+    $ipAddress = $null;
+
+    try{
+        $fqdn = [System.Net.Dns]::GetHostByName($hostname).HostName;
+    }catch{
+        Write-Warning "Unable to get the FQDN for $hostname, match likelihood reduced";
+    }
+    try{
+        $ipAddress = [System.Net.Dns]::GetHostAddresses($fqdn) | ?{$_.addressFamily -eq "InterNetwork"}; # Where IP address is ipv4
+    }catch{
+        Write-Warning "Unable to get the IP for $hostname, match likelihood reduced";
+    }
+
+		Write-Verbose "$hostname - $fqdn - $ipAddress"
+    # Search for a PRTG device that matches either the hostname, the IP, or the FQDN
+		$nameSearch = $prtgDeviceTree | ?{
+        $_.host -like $hostname -or 
+        $_.host -eq $ipAddress -or 
+        $_.host -eq $fqdn
+    }
+
+    if(($nameSearch|Measure-Object).Count -eq 1){
+			Write-Verbose "Found PRTG device #$($nameSearch.objid) - $($nameSearch.device)";
+			If ($AsObjID) { 
+				$nameSearch.objid
+			}
+			else {
+				$nameSearch
+			}
+    }else{
+        Write-Warning "There were $(($nameSearch|Measure-Object).Count) matches for this device in PRTG, use this to narrow it down"
+				Write-Output $nameSearch
+    }
+}
+Set-Alias Find-PrtgDevice Get-PrtgDeviceByHostname
 
 function Get-PrtgObjectDetails {
 	<#
@@ -141,48 +279,53 @@ function Get-PrtgObjectDetails {
 		If the Value parameter is specified, the cmdlet will return a simple string containing the named value specified. 
 	#>
 
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-        [int]$ObjectId,
+    [CmdletBinding()]
+		Param (
+				# ID of the object to query
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({$_ -gt 0})]
+        [Alias('DeviceId')]
+				[int]$ObjectId,
 		
-        [Parameter(Mandatory=$False,Position=1)]
-        [string]$Value
+        # Value to filter on the object
+        [Parameter(Position=1)]
+        [ValidateNotNullOrEmpty()]
+				[string]$Value
     )
 
-    BEGIN {
+	BEGIN {
 		$PRTG = $Global:PrtgServerObject
 		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-    }
+	}
 
-    PROCESS {
-		$url = HelperURLBuilder "getsensordetails.xml" (
-			"&id=$ObjectId"
-		)
+	PROCESS {
+			$url = HelperURLBuilder "getsensordetails.xml" (
+				"&id=$ObjectId"
+			)
 
-        $global:lasturl = $url
-        
-		$QueryObject = HelperHTTPQuery $url -AsXML
-		$Data = $QueryObject.Data.sensordata.psobject.properties | ? { $_.TypeNameOfValue -eq "System.Xml.XmlElement" }
-	
-		$ListOfNames = $Data | ForEach-Object { $_.Name }
-		$ListOfValues = $Data | ForEach-Object { $_.Value."#cdata-section" }
+			$global:lasturl = $url
+					
+			$QueryObject = HelperHTTPQuery $url -AsXML
+			$Data = $QueryObject.Data.sensordata.psobject.properties | ? { $_.TypeNameOfValue -eq "System.Xml.XmlElement" }
 		
-		$i = 0
-		
-		while ($i -lt $ListOfNames.Count) {
-			$Return += @{$ListOfNames[$i]=$ListOfValues[$i]}
-			$i++
-		}
-		
-		if ($Value) {
-			$Return.$Value
-		} else {
-			[Collections.SortedList]$Return
-		}
-    }
+			$ListOfNames = $Data | ForEach-Object { $_.Name }
+			$ListOfValues = $Data | ForEach-Object { $_.Value."#cdata-section" }
+			
+			$i = 0
+			
+			while ($i -lt $ListOfNames.Count) {
+				$Return += @{$ListOfNames[$i]=$ListOfValues[$i]}
+				$i++
+			}
+			
+			if ($Value) {
+				$Return.$Value
+			} else {
+				[Collections.SortedList]$Return
+			}
+	}
 }
-
-###############################################################################
 
 function Get-PrtgObjectType {
 	<#
@@ -212,9 +355,14 @@ function Get-PrtgObjectType {
 		If the Detailed switch is set, the cmdlet will return additional details about sensor types (but not group, device, probenode, or other object types).
 	#>
 
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-        [int]$ObjectId,
+    [CmdletBinding()]
+		Param (
+				# ID of the object to query
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({$_ -gt 0})]
+        [Alias('DeviceId')]
+				[int]$ObjectId,
 		
         [Parameter(Mandatory=$False)]
         [switch]$Detailed
@@ -239,6 +387,249 @@ function Get-PrtgObjectType {
 		return $ObjectDetails.sensortype
 	}
 }
+
+function Get-PrtgObjectProperty {
+	<#
+	.SYNOPSIS
+		Get object property/setting 
+	.DESCRIPTION
+		
+	.EXAMPLE
+		
+	#>
+		
+		[CmdletBinding()]
+    Param (
+        # ID of the object to query
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({$_ -gt 0})]
+        [Alias('DeviceId')]
+				[int]$ObjectId,
+        
+        # Name of the object's property to get
+        [Parameter(Mandatory=$true,Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Name')]
+        [string]$Property,
+				
+				[Parameter(Mandatory=$False)]
+				[switch]$Raw
+		)
+
+	BEGIN {
+		$PRTG = $Global:PrtgServerObject
+		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+	}
+
+	PROCESS {
+		# $url = HelperURLBuilder "getobjectproperty.htm" (
+		$url = HelperURLBuilder "getobjectstatus.htm" (
+			"&id=$ObjectId",
+			"&name=$Property",
+			"&show=text"
+		)
+
+		$Global:LastUrl = $Url
+		
+		Write-Verbose $Url
+		
+		if ($Raw) {
+			$QueryObject = HelperHTTPQuery $url
+			$QueryObject.Data
+		}
+		Else {
+			$QueryObject = HelperHTTPQuery $url -AsXML
+			$Data = $QueryObject.Data
+			
+			$Data.prtg.result
+		}
+	}
+}
+
+Function Get-PrtgObjectStatus {
+	<#
+	.SYNOPSIS
+		Get object status
+	.DESCRIPTION
+		
+	.EXAMPLE
+		
+	#>
+	
+	[CmdletBinding()]
+	Param(
+			# ID of the object to query
+			[Parameter(Mandatory=$true)]
+			[ValidateNotNullOrEmpty()]
+			[ValidateScript({$_ -gt 0})]
+			[Alias('DeviceId','SensorId')]
+			[int]$ObjectId
+	)
+
+    $StatusMapping = @{
+        1="Unknown"
+        2="Scanning"
+        3="Up"
+        4="Warning"
+        5="Down"
+        6="No Probe"
+        7="Paused by User"
+        8="Paused by Dependency"
+        9="Paused by Schedule"
+        10="Unusual"
+        11="Not Licensed" 
+        12="Paused Until"
+    }
+
+    Try {
+        $statusID = (Get-PrtgObjectProperty -ObjectId $ObjectId -Property 'status' -ErrorAction Stop).TrimEnd(' ')
+				Write-Verbose "StatusID is [$statusID]"
+    }
+		Catch {
+        Write-Error "Unable to get object status`r`n$($_.exception.message)"
+        $false
+    }
+    # $result = @{'objid'=$ObjectId;"status"=$StatusMapping[[int]$statusID];"status_raw"=$statusID}
+    # @{'objid'=$ObjectId;"status"=$StatusMapping[[int]$statusID];"status_raw"=$statusID}
+
+    # $result = [pscustomobject][ordered]@{
+    [pscustomobject][ordered]@{
+			'objid'				=	$ObjectId
+			'status'			=	$statusID
+			# 'status'			=	$Fred[[int]$statusID]
+			# 'status_raw'	=	$statusID
+		}
+
+}
+
+function Set-PrtgObjectProperty {
+	<#
+		.SYNOPSIS
+			Change properties of object			
+		.DESCRIPTION
+			Change properties of object
+			
+			If $Property = 'priority', Set priority of an object (valid values are 1 to 5). 
+		
+		.EXAMPLE
+			Set-PrtgObjectProperty 2512 name newname
+
+			.EXAMPLE
+			Set-PrtgObjectProperty 2512 -Property priority 4
+
+	#>
+
+		[CmdletBinding()]
+		Param (
+				# ID of the object to query
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({$_ -gt 0})]
+        [Alias('DeviceId')]
+				[int]$ObjectId,
+        
+        # Name of the object's property to get
+        [Parameter(Mandatory=$true,Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Name')]
+        [string]$Property,
+
+        # Value to which to set the property of the object
+        [Parameter(Mandatory=$True,Position=2)]
+        [ValidateNotNullOrEmpty()]
+				[string]$Value
+    )
+
+    BEGIN {
+			$PRTG = $Global:PrtgServerObject
+			if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+			# $WebClient = New-Object System.Net.WebClient
+    }
+
+		# /api/setpriority.htm?id=objectid&prio=x 
+
+    PROCESS {
+			If ($Property -eq 'priority') {
+				$url = HelperURLBuilder "setpriority.htm" (
+					"&id=$ObjectId",
+					"&prio=$Value"
+				)
+      }
+			Else {
+				$url = HelperURLBuilder "setobjectproperty.htm" (
+					"&id=$ObjectId",
+					"&name=$Property",
+					"&value=$Value"
+				)
+			}
+			
+			$global:lasturl = $url
+			$QueryObject = HelperHTTPQuery $url -replace "<[^>]*?>|<[^>]*>", ""
+			# $global:Response = ($WebClient.DownloadString($url)) -replace "<[^>]*?>|<[^>]*>", ""
+
+			return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
+    }
+}
+
+function Set-PrtgObjectGeo {
+		<#
+		.SYNOPSIS
+			set the geo location of an object			
+		.DESCRIPTION
+						
+		/api/setlonlat.htm?id=objectid&location=name_of_object_location&lonlat=longitude,latitude
+
+		.EXAMPLE
+		Set-PrtgObjectGeo -ObjectId 6250 -Geo '-27.465358, 153.029785' -Location 'NextDC B1 Brisbane'
+		
+		Sets Geo location of this group object to NextDC B1.
+		
+		#>
+
+		[CmdletBinding()]
+		Param (
+				# ID of the object to set
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({$_ -gt 0})]
+        [Alias('DeviceId')]
+				[int]$ObjectId,
+
+        # Name of the object's property to get
+        [Parameter(Mandatory=$True,Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Name')]
+        [string]$Location,
+        
+        # Value to which to set the geo location property of the object
+        [Parameter(Mandatory=$True,Position=2)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('lonlat')]
+				[string]$Geo
+		)
+
+    BEGIN {
+			$PRTG = $Global:PrtgServerObject
+			if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+			$WebClient = New-Object System.Net.WebClient
+    }
+
+    PROCESS {
+			$url = HelperURLBuilder "setlonlat.htm" (
+							"&id=$ObjectId",
+							"&lonlat=$Geo",
+							"&location=$location"
+			)
+                
+			$global:lasturl = $url
+			$global:Response = ($WebClient.DownloadString($url)) -replace "<[^>]*?>|<[^>]*>", ""
+
+			return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
+    }
+}
+
+Set-Alias Set-PrtgObjectLocation Set-PrtgObjectGeo
 
 ###############################################################################
 
@@ -421,92 +812,6 @@ function Get-PrtgTableData {
 			return $ReturnData
 		}
 	}
-}
-
-###############################################################################
-
-function Set-PrtgObjectProperty {
-        <#
-        .SYNOPSIS
-                
-        .DESCRIPTION
-                
-        .EXAMPLE
-                
-        #>
-
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-        [int]$ObjectId,
-
-        [Parameter(Mandatory=$True,Position=1)]
-        [string]$Property,
-
-        [Parameter(Mandatory=$True,Position=2)]
-        [string]$Value
-    )
-
-    BEGIN {
-                $PRTG = $Global:PrtgServerObject
-                if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-                $WebClient = New-Object System.Net.WebClient
-    }
-
-    PROCESS {
-                $url = HelperURLBuilder "setobjectproperty.htm" (
-                        "&id=$ObjectId",
-                        "&name=$Property",
-                        "&value=$Value"
-                )
-                
-        $global:lasturl = $url
-        $global:Response = ($WebClient.DownloadString($url)) -replace "<[^>]*?>|<[^>]*>", ""
-
-        return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
-    }
-}
-
-
-###############################################################################
-
-function Get-PrtgObjectProperty {
-	<#
-	.SYNOPSIS
-		
-	.DESCRIPTION
-		
-	.EXAMPLE
-		
-	#>
-
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-		[alias('DeviceId')]
-        [int]$ObjectId,
-
-        [Parameter(Mandatory=$True,Position=1)]
-        [string]$Property
-    )
-
-    BEGIN {
-		$PRTG = $Global:PrtgServerObject
-		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-    }
-
-    PROCESS {
-		$url = HelperURLBuilder "getobjectproperty.htm" (
-			"&id=$ObjectId",
-			"&name=$Property",
-			"&show=text"
-		)
-
-        $global:lasturl = $url
-        
-		$QueryObject = HelperHTTPQuery $url -AsXML
-		$Data = $QueryObject.Data
-		
-        return $Data.prtg.result
-    }
 }
 
 ###############################################################################
