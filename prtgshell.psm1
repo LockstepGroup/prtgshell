@@ -108,6 +108,7 @@ function Get-PrtgServer {
         return $Return
     }
 }
+Set-Alias Connect-PrtgServer Get-PrtgServer
 
 ###############################################################################
 
@@ -1530,6 +1531,8 @@ function New-PrtgSnmpCpuLoadSensor {
 }
 
 
+
+#region helperfunctions
 ###############################################################################
 ## Helper Functions
 ###############################################################################
@@ -1543,19 +1546,27 @@ function HelperSSLConfig {
 }
 
 function HelperHTTPQuery {
+	[CmdletBinding()]
 	Param (
 		[Parameter(Mandatory=$True,Position=0)]
 		[string]$URL,
 		
 		[Parameter(Mandatory=$False)]
 		[alias('xml')]
-		[switch]$AsXML
+		[switch]$AsXML,
+		
+		[Parameter(Mandatory=$False)]
+		[alias('ReponseUri')]
+		[switch]$UriOnly
 	)
 	
 	try {
 		$Response = $null
+		Write-Debug "HelperHTTPQuery: Create: $($URL)"
 		$Request = [System.Net.HttpWebRequest]::Create($URL)
+		Write-Debug "HelperHTTPQuery: Request: $($Request)"
 		$Response = $Request.GetResponse()
+		Write-Debug "HelperHTTPQuery: Response: $($Response)"
 		if ($Response) {
 			$StatusCode = $Response.StatusCode.value__
 			$DetailedError = $Response.GetResponseHeader("X-Detailed-Error")
@@ -1576,31 +1587,45 @@ function HelperHTTPQuery {
 	}
 	
 	if ($Response.StatusCode -eq "OK") {
-		$Stream    = $Response.GetResponseStream()
-		$Reader    = New-Object IO.StreamReader($Stream)
-		$FullPage  = $Reader.ReadToEnd()
-		
-		if ($AsXML) {
-			$Data = [xml]$FullPage
-		} else {
-			$Data = $FullPage
+		#Only want the URI string	
+		If ($UriOnly) {
+			$ResponseUri = $Response.ResponseUri.PathAndQuery
+			
+			Write-Debug "HelperHTTPQuery: ResponseUri: $($ResponseUri)"
+			$Global:LastResponse = $ResponseUri
+
+		#Return the data
+		} Else {
+			$Stream    = $Response.GetResponseStream()
+			$Reader    = New-Object IO.StreamReader($Stream)
+			$FullPage  = $Reader.ReadToEnd()
+			
+			if ($AsXML) {
+				$Data = [xml]$FullPage
+			} else {
+				$Data = $FullPage
+			}
+			
+			Write-Debug "HelperHTTPQuery: Data: $($Data)"
+			$Global:LastResponse = $Data
+			
+			$Reader.Close()
+			$Stream.Close()
 		}
-		
-		$Global:LastResponse = $Data
-		
-		$Reader.Close()
-		$Stream.Close()
-		$Response.Close()
 	} else {
-		Throw "Error Accessing Page $FullPage"
+		Throw "Error Accessing Page $($URL)"
+	}
+	$Response.Close()
+	
+	#Define response object properties
+	$ReturnObject = [pscustomobject][ordered]@{
+		'StatusCode' = if ($StatusCode) { $StatusCode } Else { "" -as [int] }
+		'DetailedError' = if ($DetailedError) { $DetailedError } Else { "" -as [String] }
+		'ResponseUri' = if ($ResponseUri) { $ResponseUri } Else { "" -as [String] }
+		'Data' = if ($Data) { $Data } Else { "" -as [String] }
 	}
 	
-	$ReturnObject = "" | Select-Object StatusCode,DetailedError,Data
-	$ReturnObject.StatusCode = $StatusCode
-	$ReturnObject.DetailedError = $DetailedError
-	$ReturnObject.Data = $Data
-	
-	return $ReturnObject
+	$ReturnObject
 }
 
 function HelperURLBuilder {
@@ -1680,6 +1705,7 @@ function HelperFormatHandler {
 }
 
 function HelperHTTPPostCommand() {
+	[CmdletBinding()]
 	param(
 		[string] $url = $null,
 		[string] $data = $null,
@@ -1716,8 +1742,10 @@ function HelperHTTPPostCommand() {
 	}
 }
 
+#endregion
+
 ###############################################################################
 ## PowerShell Module Functions
 ###############################################################################
 
-Export-ModuleMember *-*
+Export-ModuleMember -function *-* -alias *-*
