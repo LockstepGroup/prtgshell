@@ -640,9 +640,10 @@ function Get-PrtgTableData {
 			
 		.DESCRIPTION
 			The Get-PrtgTableData cmdlet can return data of various different content types using the specified parent object, as well as specify the return columns or filtering options. The input formats generally coincide with the Live Data demo from the PRTG API documentation, but there are some content types that the cmdlet does not yet support, such as "sensortree".
-		
+			Valid content types are "devices", "groups", "sensors", "todos", "messages", "values", "channels", and "history". Note that all content types are not valid for all object types; for example, a device object can contain no groups or channels.
+			
 		.PARAMETER Content
-			The type of data to return about the specified object. Valid values are "devices", "groups", "sensors", "todos", "messages", "values", "channels", and "history". Note that all content types are not valid for all object types; for example, a device object can contain no groups or channels.
+			The type of data for the specified object. Valid values are "devices", "groups", "sensors", "todos", "messages", "values", "channels", and "history". Note that all content types are not valid for all object types; for example, a device object can contain no groups or channels.
 			
 		.PARAMETER ObjectId
 			An object ID from PRTG. Objects include probes, groups, devices, and sensors, as well as reports, maps, and todos.
@@ -651,7 +652,7 @@ function Get-PrtgTableData {
 			A string array of named column values to return. In general the default return values for a given content type will return all of the available columns; this parameter can be used to change the order of columns or specify which columns to include or ignore.
 			
 		.PARAMETER FilterTags
-			A string array of sensor tags. This parameter only has any effect if the content type is "sensor". Output will only include sensors with the specified tags. Note that specifying multiple tags performs a logical OR of tags.
+			A string array of sensor tags. This parameter only has any effect if the content type is "sensors". Output will only include sensors with the specified tags. Note that specifying multiple tags performs a logical OR of tags.
 			
 		.PARAMETER Count
 			Number of records to return. PRTG's internal default for this is 500. Valid values are 1-50000.
@@ -673,15 +674,27 @@ function Get-PrtgTableData {
 			Get-PrtgTableData messages 1002
 			
 			Returns the messages log for device 1002.
+			
+		.EXAMPLE
+			Get-PrtgTableData channels -SensorId 2591
+			
+			Returns the channel data for object (sensor) 2591.			
 	#>
 
+	[CmdletBinding()]
 	Param (		
-		[Parameter(Mandatory=$True,Position=0)]
+		[Parameter(Mandatory=$True,
+				   Position=0,
+				   HelpMessage='The type of data for the specified object.')]
 		[ValidateSet("devices","groups","sensors","todos","messages","values","channels","history")]
 		[string]$Content,
 		
-		[Parameter(Mandatory=$false,Position=1)]
-		[int]$ObjectId = 0,
+		# ID of the object to query
+		[Parameter(Position=1)]
+		[ValidateNotNullOrEmpty()]
+		[ValidateScript({$_ -gt 0})]
+		[Alias('DeviceId','SensorId')]
+		[int]$ObjectId,
 		
 		[Parameter(Mandatory=$False)]
 		[string[]]$Columns,
@@ -690,7 +703,7 @@ function Get-PrtgTableData {
 		[string[]]$FilterTags,
 
 		[Parameter(Mandatory=$False)]
-		[int]$Count,
+		[int]$Count = 500,
 		
 		[Parameter(Mandatory=$False)]
 		[switch]$Raw
@@ -817,59 +830,95 @@ function Get-PrtgTableData {
 ###############################################################################
 
 function Move-PrtgObject {
-	<#
+<#
 	.SYNOPSIS
-		
+		Moves an object in PRTG tree
 	.DESCRIPTION
+		if you want positional changes, you give the string nouns ("up","down","top","bottom")
+		if you want group changes, you give an integer for the target objectid
 		
 	.EXAMPLE
 		
 	#>
 
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-		[alias('SensorId')]
-        [int]$ObjectId,
+	[CmdletBinding(SupportsShouldProcess=$True, ConfirmImpact='Medium', DefaultParameterSetName='SetPosition')]
+	Param (
+			[Parameter(Mandatory=$True,Position=0,ParameterSetName='SetPosition')]
+			[Parameter(Mandatory=$True,Position=0,ParameterSetName='MoveObject')]
+			[alias('SensorId')]
+			[int]$ObjectId,
 
-        [Parameter(Mandatory=$True,Position=1)]
-        [ValidateSet("up","down","top","bottom")] 
-        [string]$Position
-    )
+			[Parameter(Mandatory=$True,Position=1,ParameterSetName='SetPosition')]
+			[ValidateSet("up","down","top","bottom")] 
+			[string]$Position,
 
-    BEGIN {
+			[Parameter(Mandatory=$True,Position=1,ParameterSetName='MoveObject')]
+			[string]$TargetId
+	)
+
+	BEGIN {
 		$PRTG = $Global:PrtgServerObject
 		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-		$WebClient = New-Object System.Net.WebClient
-    }
+	}
 
-    PROCESS {
-		$url = HelperURLBuilder "setposition.htm" (
-			"&id=$ObjectId",
-			"&newpos=$Position"
-		)
+	PROCESS {
+		
+	 If ($pscmdlet.ShouldProcess("$ObjectId", "Move object to new location")) {
+		Switch ($PSCmdlet.ParameterSetName) {
+			
+			'SetPosition' {
+				Write-Debug "case SetPosition from $PSCmdlet.ParameterSetName"
+				Try {
+					$url = HelperURLBuilder "setposition.htm" (
+						"&id=$ObjectId",
+						"&newpos=$Position"
+					)
+					$global:lasturl = $url
+					$QueryObject = HelperHTTPQuery $url
+				}
+				Catch { Throw "$($Error[0])" }
+				Break
+			}
+			
+			'MoveObject' {
+				Write-Debug "case MoveObject from $PSCmdlet.ParameterSetName"
+				Try {
+					$url = HelperURLBuilder "moveobject.htm" (
+						"&id=$ObjectId",
+						"&targetid=$TargetId"
+					)
 
-        $global:lasturl = $url
-        $global:Response = $WebClient.DownloadString($url)
-
-        return $global:Response
-    }
+					$global:lasturl = $url
+					$QueryObject = HelperHTTPQuery $url	-UriOnly
+					
+					$NewIdRx = [regex] '(?<=id%3D)\d+'
+					$NewIDRx.Match($QueryObject.ResponseUri).value
+				}
+				Catch { Throw "$($Error[0])" }
+				Break
+			}
+		default	{Throw ArgumentException('Bad ParameterSet Name') }
+		}
+	 }	
+	}
 }
-
-###############################################################################
 
 function Copy-PrtgObject {
 	<#
 	.SYNOPSIS
-		
+	Copy source object to target	
 	.DESCRIPTION
-		
+	Copy source object to destination object, with new name.
+	
 	.EXAMPLE
-		
+	$BackupDeviceId = Find-PrtgDevice srv-veeam-w02
+	Copy-PrtgObject -ObjectId 6535 -Name 'New backup job' -TargetId $BackupDevice.objid
 	#>
-
+	
+		[CmdletBinding()]
     Param (
         [Parameter(Mandatory=$True,Position=0)]
-		[alias('SensorId')]
+				[alias('SensorId')]
         [int]$ObjectId,
 
         [Parameter(Mandatory=$True,Position=1)]
@@ -879,37 +928,28 @@ function Copy-PrtgObject {
         [string]$TargetId
     )
 
-    BEGIN {
+	BEGIN {
 		$PRTG = $Global:PrtgServerObject
 		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-		$WebClient = New-Object System.Net.WebClient
     }
 
-    PROCESS {
+	PROCESS {
 		$url = HelperURLBuilder "duplicateobject.htm" (
 			"&id=$ObjectId",
 			"&name=$Name",
 			"&targetid=$TargetId"
 		)
 
-        $global:lasturl = $url
-        
-        $NewIdRx = [regex] '(?<=id%3D)\d+'
-        
-		###########################################
-		# can we let the http function handle this?
-		
-        $Req = [system.net.httpwebrequest]::create($url)
-        $Res = $Req.GetResponse()
-        if ($Res.StatusCode -eq "OK") {
-            return $NewIDRx.Match($Res.ResponseUri.PathAndQuery).value
-        } else {
-            Throw "Error Accessing Page $WebPage"
-        }
-    }
-}
+		$global:lasturl = $url
+		$CopyObject = HelperHTTPQuery $url -UriOnly
+				
+		$NewIdRx = [regex] '(?<=id%3D)\d+'
 
-###############################################################################
+		Write-Debug $CopyObject.ResponseUri
+		
+		$NewIDRx.Match($CopyObject.ResponseUri).value
+	}
+}
 
 function Remove-PrtgObject {
 	<#
@@ -920,31 +960,39 @@ function Remove-PrtgObject {
 	.EXAMPLE
 		
 	#>
+	[CmdletBinding(SupportsShouldProcess=$True, ConfirmImpact='High')]
+	Param (
+		[Parameter(Mandatory=$True,Position=0)]
+		$ObjectId
+		#TODO: document this; $ObjectID for this cmdlet can either be a single integer or a comma-separated string of integers to handle multiples
+	)
 
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-        $ObjectId
-        #TODO: document this; $ObjectID for this cmdlet can either be a single integer or a comma-separated string of integers to handle multiples
-    )
-
-    BEGIN {
+	BEGIN {
 		$PRTG = $Global:PrtgServerObject
 		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-		$WebClient = New-Object System.Net.WebClient
-    }
+	}
 
-    PROCESS {
-		$url = HelperURLBuilder "deleteobject.htm" (
-			"&id=$ObjectId",
-			"&approve=1"
-		)
-
-        $global:lasturl = $url
-        $global:Response = $WebClient.DownloadString($url)
-
-        return $global:Response
-    }
+	PROCESS {
+		
+		If (-not (Get-PrtgObjectStatus -ObjectID $ObjectID).objid ) {
+			Write-Error "Object $ObjectID does not exist"
+			Exit
+		}
+		
+		If ($pscmdlet.ShouldProcess("ObjectID $ObjectId", "Remove object from PRTG")) {
+			$url = HelperURLBuilder "deleteobject.htm" (
+				"&id=$ObjectId",
+				"&approve=1"
+			)
+			$global:lasturl = $url
+			$RemoveObject = HelperHTTPQuery $url
+		}
+	}
 }
+
+Set-Alias Copy-PrtgSensor Copy-PrtgObject
+Set-Alias Rename-PrtgSensor Rename-PrtgObject
+Set-Alias Move-PrtgSensor Move-PrtgObject
 
 ###############################################################################
 
@@ -1155,61 +1203,6 @@ function Measure-PRTGStorage {
 		Write-Host " Sensor does not appear to be a history database size monitor sensor."
 	}
 }
-
-
-###############################################################################
-# this needs to be combined somehow with "Move-PrtgObject" from above
-# if you want positional changes, you give the string nouns
-# if you want group changes, you give an integer for the target objectid
-
-function Move-PrtgObject2 {
-	<#
-	.SYNOPSIS
-		
-	.DESCRIPTION
-		
-	.EXAMPLE
-		
-	#>
-
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-		[alias('SensorId')]
-        [int]$ObjectId,
-
-        [Parameter(Mandatory=$True,Position=1)]
-        [string]$TargetId
-    )
-
-    BEGIN {
-		$PRTG = $Global:PrtgServerObject
-		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-		$WebClient = New-Object System.Net.WebClient
-    }
-
-    PROCESS {
-		$url = HelperURLBuilder "moveobject.htm" (
-			"&id=$ObjectId",
-			"&targetid=$TargetId"
-		)
-
-        $global:lasturl = $url
-        
-        $NewIdRx = [regex] '(?<=id%3D)\d+'
-        
-		###########################################
-		# can we let the http function handle this?
-		
-        $Req = [system.net.httpwebrequest]::create($url)
-        $Res = $Req.GetResponse()
-        if ($Res.StatusCode -eq "OK") {
-            return $NewIDRx.Match($Res.ResponseUri.PathAndQuery).value
-        } else {
-            Throw "Error Accessing Page $WebPage"
-        }
-    }
-}
-
 
 ###############################################################################
 # custom exe/xml functions
@@ -1443,18 +1436,6 @@ function New-PrtgSnmpTrafficSensor {
         HelperHTTPPostCommand $Url $QueryString.ToString() | Out-Null
     }
 }
-
-
-###############################################################################
-## Alias Defintions and Alias-Only Functions
-###############################################################################
-
-# all of these aliases are in place for backwards compatibility with Brian's scripts
-# once he fixes them, these can be removed
-Set-Alias Get-PrtgObjectProp Get-PrtgObjectProperty
-Set-Alias Copy-PrtgSensor Copy-PrtgObject
-Set-Alias Rename-PrtgSensor Rename-PrtgObject
-Set-Alias Move-PrtgSensor Move-PrtgObject
 
 function Get-PrtgSensorChannels {
 	<#
