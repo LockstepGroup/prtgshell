@@ -999,84 +999,118 @@ Set-Alias Move-PrtgSensor Move-PrtgObject
 function Resume-PrtgObject {
 	<#
 	.SYNOPSIS
+		Resume-PrtgObject
 		
 	.DESCRIPTION
+		
+		See also Suspend-PrtgObject
+		
 		
 	.EXAMPLE
 		
 	#>
-
+		[CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$True,Position=0)]
-        [int]$ObjectId
+			# ID of the object to pause/resume
+			[Parameter(Mandatory=$true)]
+			[ValidateNotNullOrEmpty()]
+			[ValidateScript({$_ -gt 0})]
+			[alias('SensorId')]
+			[int]$ObjectId
     )
 
-    BEGIN {
+	BEGIN {
 		$PRTG = $Global:PrtgServerObject
 		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-		$WebClient = New-Object System.Net.WebClient
-    }
+		# $WebClient = New-Object System.Net.WebClient
+	}
 
-    PROCESS {
+	PROCESS {
 		$url = HelperURLBuilder "pause.htm" (
 			"&id=$ObjectId",
 			"&action=1"
 		)
 
-        $global:lasturl = $url
-        $global:Response = $WebClient.DownloadString($url)
+		$global:lasturl = $url
+		$ResumeObject = HelperHTTPQuery $url
+		
+		# $global:Response = $WebClient.DownloadString($url)
 
 		###########################################
 		# this needs a handler; the output is silly
-        return $global:Response
-    }
+        # return $global:Response
+	}
 }
 
-
-###############################################################################
-
-
-function Pause-PrtgObject {
+function Suspend-PrtgObject {
 	<#
+	
 	.SYNOPSIS
+		Suspend-PrtgObject
 		
 	.DESCRIPTION
+		
+		See also Resume-PrtgObject
 		
 	.EXAMPLE
 		
 	#>
+	
+	[CmdletBinding()]
+	Param (
+			# ID of the object to pause/resume
+			[Parameter(Mandatory=$true)]
+			[ValidateNotNullOrEmpty()]
+			[ValidateScript({$_ -gt 0})]
+			[alias('SensorId')]
+			[int]$ObjectId,
+				
+			# Length of time in minutes to pause the object, $null for indefinite
+			[Parameter()]
+			[int]$PauseLength=$null,
+			
+			# Message to associate with the pause event
+			[Parameter()]
+			[string]$PauseMessage="Paused by PowerShell API"
+	)
 
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-        [int]$ObjectId,
-	[Parameter(Mandatory=$False,Position=1)]
-        [string]$PauseMessage = ""
-    )
-
-    BEGIN {
+	BEGIN {
 		$PRTG = $Global:PrtgServerObject
 		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-		$WebClient = New-Object System.Net.WebClient
+		# $WebClient = New-Object System.Net.WebClient
+	}
+
+	PROCESS {
+		
+		if ($PauseLength) {
+			$url = HelperURLBuilder "pauseobjectfor.htm" (
+				"&id=$ObjectId",
+				"&pausemsg=$PauseMessage",
+				"$duration=$PauseLength",
+				"&action=0"
+			)
     }
-
-    PROCESS {
-		$url = HelperURLBuilder "pause.htm" (
-			"&id=$ObjectId",
-			"&pausemsg=$PauseMessage",
-			"&action=0"
-		)
-
-        $global:lasturl = $url
-        $global:Response = $WebClient.DownloadString($url)
+		else {
+			$url = HelperURLBuilder "pause.htm" (
+				"&id=$ObjectId",
+				"&pausemsg=$PauseMessage",
+				"&action=0"
+			)
+    }
+		
+		$global:lasturl = $url
+		$ResumeObject = HelperHTTPQuery $url
+		
+		# $global:Response = $WebClient.DownloadString($url)
 
 		###########################################
 		# this needs a handler; the output is silly
-        return $global:Response
-    }
+    # return $global:Response
+	}
 }
 
-
-
+Set-Alias Pause-PrtgObject Suspend-PrtgObject
+Set-Alias Pause-PrtgSensor Suspend-PrtgObject
 
 ###############################################################################
 # This is definitely incomplete but works in extremely limited use cases
