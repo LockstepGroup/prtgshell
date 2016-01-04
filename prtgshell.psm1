@@ -47,15 +47,19 @@ function Get-PrtgServer {
 		When specified, configures the API connection to run over HTTP rather than the default HTTPS.
 	#>
 
+	[CmdletBinding()]
 	Param (
 		[Parameter(Mandatory=$True,Position=0)]
+		[ValidateNotNullOrEmpty()]
 		[ValidatePattern("\d+\.\d+\.\d+\.\d+|(\w\.)+\w")]
 		[string]$Server,
 
 		[Parameter(Mandatory=$True,Position=1)]
+		[ValidateNotNullOrEmpty()]
 		[string]$UserName,
 
 		[Parameter(Mandatory=$True,Position=2)]
+		[ValidateNotNullOrEmpty()]
 		[string]$PassHash,
 
 		[Parameter(Mandatory=$False,Position=3)]
@@ -248,8 +252,9 @@ function Get-PrtgDeviceByHostname {
 				Write-Output $nameSearch
     }
 }
-Set-Alias Find-PrtgDevice Get-PrtgDeviceByHostname
 
+Set-Alias Find-PrtgDevice Get-PrtgDeviceByHostname
+###############################################################################
 function Get-PrtgObjectDetails {
 	<#
 	.SYNOPSIS
