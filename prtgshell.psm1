@@ -13,7 +13,7 @@ function Get-PrtgServer {
 		 - An authenticated username
 		 - A passhash that can be retrieved from the PRTG user's "My Account" page.
 		
-		
+		Alias Connect-PrtgServer
 		The cmdlet returns an object containing details of the connection, but this can be discarded or saved as desired; the returned object is not necessary to provide to further calls to the API.
 	
 	.EXAMPLE
@@ -111,6 +111,7 @@ function Get-PrtgServer {
 		# this is just to be pretty; doesn't contain the passhash
         return $Return
     }
+	END {}
 }
 Set-Alias Connect-PrtgServer Get-PrtgServer
 
@@ -521,7 +522,7 @@ function Set-PrtgObjectProperty {
 			Set-PrtgObjectProperty 2512 name newname
 
 			.EXAMPLE
-			Set-PrtgObjectProperty 2512 -Property priority 4
+			Set-PrtgObjectProperty 2512 -Priority 4
 
 	#>
 
@@ -531,13 +532,13 @@ function Set-PrtgObjectProperty {
         [Parameter(Mandatory=$true,Position=0)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({$_ -gt 0})]
-        [Alias('DeviceId')]
+        [Alias('DeviceId','SensorId')]
 				[int]$ObjectId,
         
         # Name of the object's property to get
         [Parameter(Mandatory=$true,Position=1)]
         [ValidateNotNullOrEmpty()]
-        [Alias('Name')]
+        [Alias('Name','Priority')]
         [string]$Property,
 
         # Value to which to set the property of the object
@@ -570,27 +571,25 @@ function Set-PrtgObjectProperty {
 			}
 			
 			$global:lasturl = $url
-			$QueryObject = HelperHTTPQuery $url -replace "<[^>]*?>|<[^>]*>", ""
+			$QueryObject = (HelperHTTPQuery $url) -replace "<[^>]*?>|<[^>]*>", ""
+			return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$QueryObject}}
 			# $global:Response = ($WebClient.DownloadString($url)) -replace "<[^>]*?>|<[^>]*>", ""
-
-			return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
+			# return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
     }
 }
 
 function Set-PrtgObjectGeo {
-		<#
-		.SYNOPSIS
-			set the geo location of an object			
-		.DESCRIPTION
-						
-		/api/setlonlat.htm?id=objectid&location=name_of_object_location&lonlat=longitude,latitude
-
-		.EXAMPLE
-		Set-PrtgObjectGeo -ObjectId 6250 -Geo '-27.465358, 153.029785' -Location 'NextDC B1 Brisbane'
-		
-		Sets Geo location of this group object to NextDC B1.
-		
-		#>
+	<#
+	.SYNOPSIS
+		set the geo location of an object			
+	.DESCRIPTION
+					
+	.EXAMPLE
+	Set-PrtgObjectGeo -ObjectId 6250 -Geo '-27.465358, 153.029785' -Location 'NextDC B1 Brisbane'
+	
+	Sets Geo location of this group object to NextDC B1.
+	
+	#>
 
 		[CmdletBinding()]
 		Param (
@@ -617,7 +616,7 @@ function Set-PrtgObjectGeo {
     BEGIN {
 			$PRTG = $Global:PrtgServerObject
 			if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-			$WebClient = New-Object System.Net.WebClient
+			# $WebClient = New-Object System.Net.WebClient
     }
 
     PROCESS {
@@ -628,9 +627,10 @@ function Set-PrtgObjectGeo {
 			)
                 
 			$global:lasturl = $url
-			$global:Response = ($WebClient.DownloadString($url)) -replace "<[^>]*?>|<[^>]*>", ""
-
-			return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
+			$QueryObject = (HelperHTTPQuery $url) -replace "<[^>]*?>|<[^>]*>", ""
+			return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$QueryObject}}
+			# $global:Response = ($WebClient.DownloadString($url)) -replace "<[^>]*?>|<[^>]*>", ""
+			# return "" | select @{n='ObjectID';e={$ObjectId}},@{n='Property';e={$Property}},@{n='Value';e={$Value}},@{n='Response';e={$global:Response}}
     }
 }
 
@@ -824,10 +824,10 @@ function Get-PrtgTableData {
 				storedreport=@("Currently unsupported")
 			}
 			
-			Write-Host "No $Content; Object $ObjectId is type $DeterminedObjectType"
-			Write-Host (" Valid query types: " + ($ValidQueriesTable.$DeterminedObjectType -join ", "))
+			Write-Warning "No $Content; Object $ObjectId is type $DeterminedObjectType"
+			Write-Warning (" Valid query types: " + ($ValidQueriesTable.$DeterminedObjectType -join ", "))
 		} else {
-			return $ReturnData
+			$ReturnData
 		}
 	}
 }
@@ -1248,7 +1248,7 @@ function Measure-PRTGStorage {
 
 function Set-PrtgResult {
     Param (
-    [Parameter(mandatory=$True,Position=0)]
+    [Parameter(Mandatory=$True,Position=0)]
     [string]$Channel,
     
     [Parameter(mandatory=$True,Position=1)]
@@ -1479,7 +1479,7 @@ function New-PrtgSnmpTrafficSensor {
 function Get-PrtgSensorChannels {
 	<#
 		.SYNOPSIS
-		
+			Show parent probe of device
 		.DESCRIPTION
 		
 		.EXAMPLE
@@ -1569,12 +1569,12 @@ function Rename-PrtgObject {
 	#>
 
     Param (
-        [Parameter(Mandatory=$True,Position=0)]
-		[alias('SensorId')]
-        [int]$ObjectId,
+			[Parameter(Mandatory=$True,Position=0)]
+			[alias('SensorId')]
+			[int]$ObjectId,
 
-        [Parameter(Mandatory=$True,Position=1)]
-        [string]$NewName
+			[Parameter(Mandatory=$True,Position=1)]
+			[string]$NewName
     )
 
     PROCESS {
@@ -1623,65 +1623,120 @@ function Get-PRTGProbes {
 }
 
 
-
+function Get-PrtgGroups{
+    
+		Get-PrtgTableData -content "groups" 
+		
+    # -columns "objid,probe,group,name,downsens,partialdownsens,downacksens,upsens,warnsens,pausedsens,unusualsens"
+}
 function Remove-PrtgSensorNumbers {
-    Param (
-        [Parameter(Mandatory=$True,Position=0)]
-        [int]$ObjectId
+
+	[CmdletBinding(SupportsShouldProcess=$True, ConfirmImpact='Medium')]
+	Param (
+		[Parameter(Mandatory=$True,Position=0)]
+		[int]$ObjectId
 	)
 	
-	$ObjectType = (Get-PrtgObjectDetails $ObjectId).sensortype
-	
-	if ($ObjectType -eq "device") {
+	Begin { }
 
-		$ObjectSensors = Get-PrtgTableData sensors $ObjectId | select objid,sensor
-		$regex = [regex]"\s\d+$"
+	Process {
+		$ObjectType = (Get-PrtgObjectDetails $ObjectId).sensortype
+		
+		if ($ObjectType -eq "device") {
 
-		foreach ($Sensor in $ObjectSensors) {
-			$SensorName = $Sensor.sensor -replace $regex
-			
-			$ReturnName = $Sensor.sensor + " -> " + $SensorName
-			$ReturnValue = $(Set-PrtgObjectProperty -ObjectId $Sensor.objid -Property name -Value $SensorName) -replace "<[^>]*?>|<[^>]*>", ""
-			
-			"" | Select @{n='Name Change';e={$ReturnName}},@{n='Return Code';e={$ReturnValue}}
+			$ObjectSensors = Get-PrtgTableData sensors $ObjectId | select objid,sensor
+			$regex = [regex]"\s\d+$"
+
+			foreach ($Sensor in $ObjectSensors) {
+				If ($pscmdlet.ShouldProcess("SensorID $Sensor", "Remove numbers from end of sensor name")) {
+					$SensorName = $Sensor.sensor -replace $regex
+					
+					$ReturnName = $Sensor.sensor + " -> " + $SensorName
+					$ReturnValue = $(Set-PrtgObjectProperty -ObjectId $Sensor.objid -Property name -Value $SensorName) -replace "<[^>]*?>|<[^>]*>", ""
+					
+					"" | Select @{n='Name Change';e={$ReturnName}},@{n='Return Code';e={$ReturnValue}}
+				}
+			}
+		} else {
+			Write-Error "Object must be a device; provided object is type $ObjectType."
 		}
-	} else {
-		Write-Error "Object must be a device; provided object is type $ObjectType."
 	}
+	End {}
 }
 
 
+function Invoke-PrtgObjectScan {
+	<#
+		.SYNOPSIS
+			Scan a sensor now     
+		.DESCRIPTION
+						
+		.EXAMPLE
+					
+	#>
 
-function Invoke-PrtgObjectDiscovery {
-        <#
-        .SYNOPSIS
-                
-        .DESCRIPTION
-                
-        .EXAMPLE
-                
-        #>
-
+		[CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$True,Position=0)]
-        [int]$ObjectId
+				# ID of the object to scan
+				[Parameter(Mandatory=$true)]
+				[ValidateNotNullOrEmpty()]
+				[ValidateScript({$_ -gt 0})]
+				[alias('SensorId')]
+				[int]$ObjectId
     )
 
     BEGIN {
-                $PRTG = $Global:PrtgServerObject
-                if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
-                $WebClient = New-Object System.Net.WebClient
+			$PRTG = $Global:PrtgServerObject
+			if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
     }
 
     PROCESS {
-                $url = HelperURLBuilder "discovernow.htm" (
-                        "&id=$ObjectId"
-                )
+			$url = HelperURLBuilder "scannow.htm" (
+							"&id=$ObjectId"
+			)
 
-        $global:lasturl = $url
-        $global:Response = $WebClient.DownloadString($url)
+			$global:lasturl = $url
+			$QueryObject = HelperHTTPQuery $url
 
-        return $global:Response -replace "<[^>]*?>|<[^>]*>", ""
+			return $QueryObject.Data -replace "<[^>]*?>|<[^>]*>", ""
+    }
+}
+
+function Invoke-PrtgObjectDiscovery {
+	<#
+	.SYNOPSIS
+
+		Run Auto Discovery for an object     
+	.DESCRIPTION
+					
+	.EXAMPLE
+					
+	#>
+
+	[CmdletBinding()]
+	Param (
+			# ID of the object to scan
+			[Parameter(Mandatory=$true)]
+			[ValidateNotNullOrEmpty()]
+			[ValidateScript({$_ -gt 0})]
+			[Alias('DeviceId')]
+			[int]$ObjectId
+	)
+
+    BEGIN {
+			$PRTG = $Global:PrtgServerObject
+			if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+    }
+
+    PROCESS {
+			$url = HelperURLBuilder "discovernow.htm" (
+							"&id=$ObjectId"
+		)
+
+			$global:lasturl = $url
+			$QueryObject = HelperHTTPQuery $url
+
+			return $QueryObject.Data -replace "<[^>]*?>|<[^>]*>", ""
     }
 }
 
@@ -1692,9 +1747,9 @@ function New-PrtgSensor {
     )
 
     BEGIN {
-        Add-Type -AssemblyName System.Web # Needed for System.Web.HttpUtility
-        $PRTG = $Global:PrtgServerObject
-		if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
+			Add-Type -AssemblyName System.Web # Needed for System.Web.HttpUtility
+			$PRTG = $Global:PrtgServerObject
+			if ($PRTG.Protocol -eq "https") { HelperSSLConfig }
     }
 
     PROCESS {
@@ -1979,15 +2034,15 @@ function HelperURLBuilder {
 
 	$PortString = (":" + ($Port))
 	
-	$Return =
+	$URL =
 		$Protocol, "://", $Server, $PortString,
 		"/api/",$Action,"?",
 		"username=$UserName",
 		"&passhash=$PassHash" -join ""
 	
-	$Return += $QueryParameters -join ""
+	$URL += $QueryParameters -join ""
 	
-	return $Return
+	return $URL
 }
 
 function HelperFormatTest {
