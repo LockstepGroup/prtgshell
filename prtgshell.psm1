@@ -2,6 +2,46 @@
 ## API Functions
 ###############################################################################
 
+function Get-PrtgPassHash {
+	<#
+	.SYNOPSIS
+		Obtains a Pass hash to be able to connect to the PRTG server to call the API. For example in Get-PrtgServer
+		You can request the password hash for an account with an API call:
+		http://yourserver/api/getpasshash.htm?username=myuser&password=mypassword
+	.DESCRIPTION
+		The Get-PrtgPassHash cmdlet connects to the PRTG server over HTTPS and The cmdlet needs at three parameters:
+		 - The server name (without the protocol)
+		 - An authenticated username
+		 - A password
+		Return Value is a String which is the password hash.
+	.EXAMPLE
+		Get-PrtgPassHash "prtg.company.com" "jsmith" "mysecurepassword"
+		Connects to PRTG using the default port (443) over SSL (HTTPS) using the username "jsmith" and the password mysecurepassword
+
+	.PARAMETER Server
+		Fully-qualified domain name for the PRTG server. Don't include the protocol part ("https://" or "http://").
+		
+	.PARAMETER UserName
+		PRTG username to use for authentication to the API.
+
+	.PARAMETER Password
+		PRTG password to use to obtain the PassHash.
+	#>
+	Param (
+	[Parameter(Mandatory=$True,Position=1)]
+	[string]$Server,
+
+	[Parameter(Mandatory=$True,Position=2)]
+	[string]$UserName,
+
+	[Parameter(Mandatory=$True,Position=3)]
+	[securestring]$Password
+	)
+	$PassHash = Invoke-RestMethod -Uri https://$Server/api/getpasshash.htm?Username=$UserName"&"password=$Password
+
+	Return $PassHash
+}
+
 function Get-PrtgServer {
 	<#
 	.SYNOPSIS
