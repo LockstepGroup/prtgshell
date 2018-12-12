@@ -1,4 +1,1 @@
-prtgshell
-=========
-
-PowerShell module for PRTG
+# prtgshell
