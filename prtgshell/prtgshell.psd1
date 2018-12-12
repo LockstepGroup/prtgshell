@@ -12,7 +12,7 @@
     # RootModule = ''
 
     # Version number of this module.
-    ModuleVersion     = '3.0.0'
+    ModuleVersion     = '3.0.2'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -95,19 +95,19 @@
         PSData = @{
 
             # Tags applied to this module. These help with module discovery in online galleries.
-            # Tags = @()
+            Tags         = @('prtg', 'lockstep')
 
             # A URL to the license for this module.
-            # LicenseUri = ''
+            LicenseUri   = 'https://raw.githubusercontent.com/LockstepGroup/prtgshell/master/LICENSE'
 
             # A URL to the main website for this project.
-            # ProjectUri = ''
+            ProjectUri   = 'https://github.com/LockstepGroup/prtgshell'
 
             # A URL to an icon representing this module.
             # IconUri = ''
 
             # ReleaseNotes of this module
-            # ReleaseNotes = ''
+            ReleaseNotes = 'First release of module rewritten to take advantage of PowerShell 5 classes and add Core compatibility.'
 
         } # End of PSData hashtable
 
@@ -120,4 +120,6 @@
     # DefaultCommandPrefix = ''
 
 }
+
+
 
