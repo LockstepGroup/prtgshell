@@ -70,7 +70,7 @@ InModuleScope $ENV:BHProjectName {
                 $PrtgServerObject.PassHash | Should -Be '1234567890'
             }
             It "PrtgServerObject should have correct UrlHistory" {
-                $PrtgServerObject.UrlHistory[0] | Should -Be 'https://1.1.1.1/api/getstatus.xml?passhash=1234567890&username=JohnDoe'
+                $PrtgServerObject.UrlHistory[0] | Should -Be 'https://1.1.1.1:443/api/getstatus.xml?passhash=1234567890&username=JohnDoe'
             }
             It "PrtgServerObject should have correct RawQueryResultHistory" {
                 $PrtgServerObject.RawQueryResultHistory.Count | Should -Be 1
@@ -129,7 +129,6 @@ InModuleScope $ENV:BHProjectName {
             It "PrtgServerObject should have correct ReadOnlyAllowAcknowledge" {
                 $PrtgServerObject.ReadOnlyAllowAcknowledge | Should -BeFalse
             }
-
         }
 
         $PrtgPassHashResult = @{'Content' = $PrtgPassHash}
@@ -158,7 +157,7 @@ InModuleScope $ENV:BHProjectName {
                 $PrtgServerObject.PassHash | Should -Be '1234567890'
             }
             It "PrtgServerObject should have correct UrlHistory" {
-                $PrtgServerObject.UrlHistory[0] | Should -Be 'https://1.1.1.1/api/getpasshash.htm?password=PASSWORDREDACTED&username=JohnDoe'
+                $PrtgServerObject.UrlHistory[0] | Should -Be 'https://1.1.1.1:443/api/getpasshash.htm?username=JohnDoe&password=PASSWORDREDACTED'
             }
             It "PrtgServerObject should have correct RawQueryResultHistory" {
                 $PrtgServerObject.RawQueryResultHistory.Count | Should -Be 2
@@ -216,6 +215,17 @@ InModuleScope $ENV:BHProjectName {
             }
             It "PrtgServerObject should have correct ReadOnlyAllowAcknowledge" {
                 $PrtgServerObject.ReadOnlyAllowAcknowledge | Should -BeFalse
+            }
+        }
+
+        Context "Test Custom Port/Protocol" {
+            Mock Invoke-WebRequest { return $PrtgStatusResult } -ParameterFilter { $Uri -match 'getstatus.xml' }
+            Get-PrtgServer -Server $PrtgServer -UserName $PrtgUsername -PassHash $PrtgPassHash -Quiet -HttpOnly -Port 444
+            It "PrtgServerObject should have correct Port" {
+                $PrtgServerObject.Port | Should -BeExactly 444
+            }
+            It "PrtgServerObject should have correct Protocol" {
+                $PrtgServerObject.Protocol | Should -Be 'http'
             }
         }
     }

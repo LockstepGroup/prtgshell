@@ -48,10 +48,10 @@ function Get-PrtgServer {
 
         if ($PassHash) {
             Write-Verbose "$VerbosePrefix Attempting to connect with provided Username and PassHash"
-            $global:PrtgServerObject = [PrtgServer]::new($Server, $UserName, $PassHash)
+            $global:PrtgServerObject = [PrtgServer]::new($Server, $UserName, $PassHash, $Protocol, $Port)
         } else {
             Write-Verbose "$VerbosePrefix Attempting to generate PassHash with provided Credential."
-            $global:PrtgServerObject = [PrtgServer]::new($Server, $Credential)
+            $global:PrtgServerObject = [PrtgServer]::new($Server, $Credential, $Protocol, $Port)
             Write-Verbose "$VerbosePrefix PassHash successfully generated."
         }
 

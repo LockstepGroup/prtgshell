@@ -40,7 +40,7 @@ class PrtgServer {
     [String] getApiUrl([hashtable]$queryHashtable, [string]$queryPage) {
         $formattedQueryString = [HelperWeb]::createQueryString($queryHashtable)
         if ($this.Hostname) {
-            $url = "https://" + $this.Hostname + "/api/" + $queryPage + $formattedQueryString
+            $url = $this.Protocol + "://" + $this.Hostname + ':' + $this.Port + "/api/" + $queryPage + $formattedQueryString
             return $url
         } else {
             return $null
@@ -184,16 +184,20 @@ class PrtgServer {
     PrtgServer() {
     }
 
-    # Initiator with apikey
-    PrtgServer([string]$Hostname, [string]$UserName, [string]$PassHash) {
+    # Initiator with PassHash
+    PrtgServer([string]$Hostname, [string]$UserName, [string]$PassHash, [string]$Protocol = "https", [int]$Port = 443) {
         $this.Hostname = $Hostname
         $this.UserName = $UserName
         $this.PassHash = $PassHash
+        $this.Protocol = $Protocol
+        $this.Port = $Port
     }
 
     # Initiator with Credential
-    PrtgServer([string]$Hostname, [PSCredential]$Credential) {
+    PrtgServer([string]$Hostname, [PSCredential]$Credential, [string]$Protocol = "https", [int]$Port = 443) {
         $this.Hostname = $Hostname
+        $this.Protocol = $Protocol
+        $this.Port = $Port
         $this.invokeGetPassHashQuery($Credential)
     }
     #endregion Initiators
