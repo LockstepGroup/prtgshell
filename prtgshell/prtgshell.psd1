@@ -9,10 +9,10 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    # RootModule = ''
+    RootModule        = 'prtgshell.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '3.0.2'
+    ModuleVersion     = '3.0.0'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -120,6 +120,8 @@
     # DefaultCommandPrefix = ''
 
 }
+
+
 
 
 
