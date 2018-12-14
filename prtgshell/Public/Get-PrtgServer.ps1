@@ -79,7 +79,8 @@ function Get-PrtgServer {
         Write-Verbose "$VerbosePrefix Attempting to test connection"
         try {
             $TestConnect = $global:PrtgServerObject.testConnection()
-        } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+        } catch {
+            # originally I was catching specific types of exceptions, but apparently they're different between core and non-core, which is stupid
             switch -Regex ($_.Exception.Message) {
                 '401\ \(Unauthorized\)' {
                     $PSCmdlet.ThrowTerminatingError(
@@ -91,9 +92,10 @@ function Get-PrtgServer {
                         )
                     )
                 }
+                default {
+                    $PSCmdlet.ThrowTerminatingError($PSItem)
+                }
             }
-        } catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
         }
         if ($TestConnect) {
             if (!($Quiet)) {
