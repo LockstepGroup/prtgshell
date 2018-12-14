@@ -54,7 +54,8 @@ function Get-PrtgServer {
             try {
                 $global:PrtgServerObject = [PrtgServer]::new($Server, $Credential, $Protocol, $Port)
                 Write-Verbose "$VerbosePrefix PassHash successfully generated."
-            } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+            } catch {
+                # originally I was catching specific types of exceptions, but apparently they're different between core and non-core, which is stupid
                 switch -Regex ($_.Exception.Message) {
                     '401\ \(Unauthorized\)' {
                         $PSCmdlet.ThrowTerminatingError(
@@ -66,9 +67,10 @@ function Get-PrtgServer {
                             )
                         )
                     }
+                    default {
+                        $PSCmdlet.ThrowTerminatingError($PSItem)
+                    }
                 }
-            } catch {
-                $PSCmdlet.ThrowTerminatingError($PSItem)
             }
         }
 
