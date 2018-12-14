@@ -103,7 +103,7 @@ class PrtgServer {
         if ($queryPage -ne "getpasshash.htm") {
             $this.UrlHistory += $url
         } else {
-            $EncodedPassword = [System.Web.HttpUtility]::UrlEncode($queryHashtable.password)
+            $EncodedPassword = [System.Uri]::UrlEncode($queryHashtable.password)
             $queryHashtable.password = 'PASSWORDREDACTED'
             $this.UrlHistory += $url.Replace($EncodedPassword, "PASSWORDREDACTED")
         }
