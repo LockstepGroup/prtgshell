@@ -157,7 +157,7 @@ InModuleScope $ENV:BHProjectName {
                 $PrtgServerObject.PassHash | Should -Be '1234567890'
             }
             It "PrtgServerObject should have correct UrlHistory" {
-                $PrtgServerObject.UrlHistory[0] | Should -Be 'https://1.1.1.1:443/api/getpasshash.htm?username=JohnDoe&password=PASSWORDREDACTED'
+                $PrtgServerObject.UrlHistory[0] | Should -Be 'https://1.1.1.1:443/api/getpasshash.htm?password=PASSWORDREDACTED&username=JohnDoe'
             }
             It "PrtgServerObject should have correct RawQueryResultHistory" {
                 $PrtgServerObject.RawQueryResultHistory.Count | Should -Be 2
@@ -226,6 +226,17 @@ InModuleScope $ENV:BHProjectName {
             }
             It "PrtgServerObject should have correct Protocol" {
                 $PrtgServerObject.Protocol | Should -Be 'http'
+            }
+        }
+        Context "Bad Credentials" {
+            # Would like to check for correct error id (1000,Get-PrtgServer), but not sure how to that with Mock
+            Mock Invoke-WebRequest { Throw "Unauthorized" } -ParameterFilter { $Uri -match 'getstatus.xml' }
+            It "Should throw error with bad PassHash" {
+                { Get-PrtgServer -Server $PrtgServer -UserName $PrtgUsername -PassHash $PrtgPassHash -Quiet } | Should -Throw
+            }
+            Mock Invoke-WebRequest { Throw "Unauthorized" } -ParameterFilter { $Uri -match 'getpasshash.htm' }
+            It "Should throw error with bad Credential" {
+                { Get-PrtgServer -Server $PrtgServer -Credential $PrtgCred -Quiet } |  Should -Throw "Unauthorized"
             }
         }
     }

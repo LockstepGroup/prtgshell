@@ -1,15 +1,15 @@
 function Get-PrtgServer {
-    [CmdletBinding(DefaultParameterSetName = 'ApiKey')]
+    [CmdletBinding(DefaultParameterSetName = 'PassHash')]
 
     Param (
         [Parameter(Mandatory = $True, Position = 0)]
         [ValidatePattern("\d+\.\d+\.\d+\.\d+|(\w\.)+\w")]
         [string]$Server,
 
-        [Parameter(ParameterSetName = "ApiKey", Mandatory = $True, Position = 1)]
+        [Parameter(ParameterSetName = "PassHash", Mandatory = $True, Position = 1)]
         [string]$UserName,
 
-        [Parameter(ParameterSetName = "ApiKey", Mandatory = $True, Position = 2)]
+        [Parameter(ParameterSetName = "PassHash", Mandatory = $True, Position = 2)]
         [string]$PassHash,
 
         [Parameter(ParameterSetName = "Credential", Mandatory = $True, Position = 1)]
@@ -51,8 +51,25 @@ function Get-PrtgServer {
             $global:PrtgServerObject = [PrtgServer]::new($Server, $UserName, $PassHash, $Protocol, $Port)
         } else {
             Write-Verbose "$VerbosePrefix Attempting to generate PassHash with provided Credential."
-            $global:PrtgServerObject = [PrtgServer]::new($Server, $Credential, $Protocol, $Port)
-            Write-Verbose "$VerbosePrefix PassHash successfully generated."
+            try {
+                $global:PrtgServerObject = [PrtgServer]::new($Server, $Credential, $Protocol, $Port)
+                Write-Verbose "$VerbosePrefix PassHash successfully generated."
+            } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+                switch -Regex ($_.Exception.Message) {
+                    '401\ \(Unauthorized\)' {
+                        $PSCmdlet.ThrowTerminatingError(
+                            [System.Management.Automation.ErrorRecord]::new(
+                                ([System.ArgumentException]"Unauthorized, please check your credentials."),
+                                '1000',
+                                [System.Management.Automation.ErrorCategory]::CloseError,
+                                $Server
+                            )
+                        )
+                    }
+                }
+            } catch {
+                $PSCmdlet.ThrowTerminatingError($PSItem)
+            }
         }
 
         # Test API connection
@@ -60,10 +77,27 @@ function Get-PrtgServer {
         # This grabs version info from the box and tests if you're just
         # supplying an api key yourself.
         Write-Verbose "$VerbosePrefix Attempting to test connection"
-        $TestConnect = $global:PrtgServerObject.testConnection()
+        try {
+            $TestConnect = $global:PrtgServerObject.testConnection()
+        } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+            switch -Regex ($_.Exception.Message) {
+                '401\ \(Unauthorized\)' {
+                    $PSCmdlet.ThrowTerminatingError(
+                        [System.Management.Automation.ErrorRecord]::new(
+                            ([System.ArgumentException]"Unauthorized, please check your credentials."),
+                            '1000',
+                            [System.Management.Automation.ErrorCategory]::CloseError,
+                            $Server
+                        )
+                    )
+                }
+            }
+        } catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
         if ($TestConnect) {
             if (!($Quiet)) {
-                return $global:PaDeviceObject
+                return $global:PrtgServerObject
             }
         } else {
             Throw "$VerbosePrefix testConnection() failed."

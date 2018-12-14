@@ -1,0 +1,379 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<helpItems schema="maml" xmlns="http://msh">
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
+    <command:details>
+      <command:name>Get-PrtgServer</command:name>
+      <command:verb>Get</command:verb>
+      <command:noun>PrtgServer</command:noun>
+      <maml:description>
+        <maml:para>Performs initial connection to Prtg Server.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Performs initial connection to Prtg Server. Runs a getstatus query to get some info about the sever and test connectivity. Additionally, if Credential is provided, the user's PassHash is retrieved.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Get-PrtgServer</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Server</maml:name>
+          <maml:Description>
+            <maml:para>IP or Hostname of the Prtg server.</maml:para>
+          </maml:Description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="1" aliases="none">
+          <maml:name>Credential</maml:name>
+          <maml:Description>
+            <maml:para>PSCredential object with a valid username/password.</maml:para>
+          </maml:Description>
+          <command:parameterValue required="true" variableLength="false">PSCredential</command:parameterValue>
+          <dev:type>
+            <maml:name>PSCredential</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="2" aliases="none">
+          <maml:name>Port</maml:name>
+          <maml:Description>
+            <maml:para>Specifies a non-default port.</maml:para>
+          </maml:Description>
+          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="http">
+          <maml:name>HttpOnly</maml:name>
+          <maml:Description>
+            <maml:para>Specifies to use plaintext HTTP instead of SSL.</maml:para>
+          </maml:Description>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="q">
+          <maml:name>Quiet</maml:name>
+          <maml:Description>
+            <maml:para>Does not return any result to the output stream.</maml:para>
+          </maml:Description>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>SkipCertificateCheck</maml:name>
+          <maml:Description>
+            <maml:para>Disabled validation of Prtg server's SSL certificate.</maml:para>
+          </maml:Description>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem>
+        <maml:name>Get-PrtgServer</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Server</maml:name>
+          <maml:Description>
+            <maml:para>IP or Hostname of the Prtg server.</maml:para>
+          </maml:Description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="1" aliases="none">
+          <maml:name>UserName</maml:name>
+          <maml:Description>
+            <maml:para>Specifies the desired Username to connect with.</maml:para>
+          </maml:Description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="2" aliases="none">
+          <maml:name>PassHash</maml:name>
+          <maml:Description>
+            <maml:para>Specified the PassHash of the provided Username.</maml:para>
+          </maml:Description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="2" aliases="none">
+          <maml:name>Port</maml:name>
+          <maml:Description>
+            <maml:para>Specifies a non-default port.</maml:para>
+          </maml:Description>
+          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="http">
+          <maml:name>HttpOnly</maml:name>
+          <maml:Description>
+            <maml:para>Specifies to use plaintext HTTP instead of SSL.</maml:para>
+          </maml:Description>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="q">
+          <maml:name>Quiet</maml:name>
+          <maml:Description>
+            <maml:para>Does not return any result to the output stream.</maml:para>
+          </maml:Description>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>SkipCertificateCheck</maml:name>
+          <maml:Description>
+            <maml:para>Disabled validation of Prtg server's SSL certificate.</maml:para>
+          </maml:Description>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="1" aliases="none">
+        <maml:name>Credential</maml:name>
+        <maml:Description>
+          <maml:para>PSCredential object with a valid username/password.</maml:para>
+        </maml:Description>
+        <command:parameterValue required="true" variableLength="false">PSCredential</command:parameterValue>
+        <dev:type>
+          <maml:name>PSCredential</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="http">
+        <maml:name>HttpOnly</maml:name>
+        <maml:Description>
+          <maml:para>Specifies to use plaintext HTTP instead of SSL.</maml:para>
+        </maml:Description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="2" aliases="none">
+        <maml:name>PassHash</maml:name>
+        <maml:Description>
+          <maml:para>Specified the PassHash of the provided Username.</maml:para>
+        </maml:Description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="2" aliases="none">
+        <maml:name>Port</maml:name>
+        <maml:Description>
+          <maml:para>Specifies a non-default port.</maml:para>
+        </maml:Description>
+        <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="q">
+        <maml:name>Quiet</maml:name>
+        <maml:Description>
+          <maml:para>Does not return any result to the output stream.</maml:para>
+        </maml:Description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Server</maml:name>
+        <maml:Description>
+          <maml:para>IP or Hostname of the Prtg server.</maml:para>
+        </maml:Description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>SkipCertificateCheck</maml:name>
+        <maml:Description>
+          <maml:para>Disabled validation of Prtg server's SSL certificate.</maml:para>
+        </maml:Description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="1" aliases="none">
+        <maml:name>UserName</maml:name>
+        <maml:Description>
+          <maml:para>Specifies the desired Username to connect with.</maml:para>
+        </maml:Description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>PrtgServer</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>-------------------------- Example 1 --------------------------</maml:title>
+        <dev:code>PS C:\&gt; Get-PrtgServer -Server 'prtg.example.com' -UserName JohnDoe -PassHash 1234567890
+Port                     : 443
+Protocol                 : https
+Hostname                 : prtg.example.com
+UserName                 : JohnDoe
+PassHash                 : 1234567890
+UrlHistory               : {https://prtg.example.com:443/api/getstatus.xml?passhash=1234567890&amp;username=JohnDoe}
+LastError                :
+LastResult               : #document
+NewAlarms                : 0
+Alarms                   : 21
+AckAlarms                : 7
+NewToDos                 : 0
+Clock                    : 12/14/2018 1:40:41 PM
+ClockasDateTime          : 12/14/18 1:40:41 PM
+ActivationStatusMessage  : (Tag activationstatusalert unknown)
+BackgroundTasks          : 0
+CorrelationTasks         : 0
+AutoDiscoTasks           : 0
+Version                  : 18.2.41.1652+
+PrtgUpdateAvailable      : True
+IsAdminUser              : True
+IsCluster                : False
+ReadOnlyUser             : False
+ReadOnlyAllowAcknowledge : False</dev:code>
+        <dev:remarks>
+          <maml:para>Initiates connection to Prtg Server with the provided Username and PassHash.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>-------------------------- Example 2 --------------------------</maml:title>
+        <dev:code>PS C:\&gt; Get-PrtgServer -Server 'prtg.example.com' -Credential (Get-Credential) -SkipCertificateCheck
+Port                     : 443
+Protocol                 : https
+Hostname                 : prtg.example.com
+UserName                 : JohnDoe
+PassHash                 : 1234567890
+UrlHistory               : {https://prtg.example.com:443/api/getpasshash.htm?password=PASSWORDREDACTED&amp;username=JohnDoe,
+                           https://prtg.example.com:443/api/getstatus.xml?passhash=1234567890&amp;username=JohnDoe}
+LastError                :
+LastResult               : #document
+NewAlarms                : 0
+Alarms                   : 21
+AckAlarms                : 7
+NewToDos                 : 0
+Clock                    : 12/14/2018 1:40:41 PM
+ClockasDateTime          : 12/14/18 1:40:41 PM
+ActivationStatusMessage  : (Tag activationstatusalert unknown)
+BackgroundTasks          : 0
+CorrelationTasks         : 0
+AutoDiscoTasks           : 0
+Version                  : 18.2.41.1652+
+PrtgUpdateAvailable      : True
+IsAdminUser              : True
+IsCluster                : False
+ReadOnlyUser             : False
+ReadOnlyAllowAcknowledge : False</dev:code>
+        <dev:remarks>
+          <maml:para>Initiates connection to Prtg Server with the provided Credential skipping validation of the provided SSL certificate.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>-------------------------- Example 3 --------------------------</maml:title>
+        <dev:code>PS C:\&gt; Get-PrtgServer -Server 'prtg.example.com' -Credential (Get-Credential) -HttpOnly -Quiet -Port 8080</dev:code>
+        <dev:remarks>
+          <maml:para>Initiates connection to Prtg Server with the provided Credential using plaintext HTTP on port 8080. No result is returned to the output stream due to the -Quiet switch.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>https://github.com/LockstepGroup/prtgshell</maml:linkText>
+        <maml:uri>https://github.com/LockstepGroup/prtgshell</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>https://www.powershellgallery.com/packages/prtgshell</maml:linkText>
+        <maml:uri>https://www.powershellgallery.com/packages/prtgshell</maml:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+</helpItems>
