@@ -1,5 +1,5 @@
 function Get-PrtgTableData {
-    [CmdletBinding(DefaultParameterSetName = 'PassHash')]
+    [CmdletBinding()]
 
     Param (
         [Parameter(Mandatory = $True, Position = 0)]
@@ -104,6 +104,7 @@ function Get-PrtgTableData {
 
         $HTMLColumns = @("downsens", "partialdownsens", "downacksens", "upsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens", "message", "favorite")
         $QueryPage = 'table.xml'
+        $ReturnData = @()
     }
 
     PROCESS {
@@ -112,7 +113,7 @@ function Get-PrtgTableData {
         $QueryTable.id = $ObjectId
 
         try {
-            $ReturnData = $global:PrtgServerObject.invokeApiQuery($QueryTable, $QueryPage)
+            $Response = $global:PrtgServerObject.invokeApiQuery($QueryTable, $QueryPage)
         } catch {
             # originally I was catching specific types of exceptions, but apparently they're different between core and non-core, which is stupid
             switch -Regex ($_.Exception.Message) {
@@ -125,7 +126,22 @@ function Get-PrtgTableData {
             }
         }
 
-        $ReturnData.$Content.item
+        foreach ($obj in $Response.$Content.Item) {
+            switch ($Content) {
+                'devices' {
+                    $ReturnData += [PrtgDevice]::new($obj)
+                }
+                'groups' {
+                    $ReturnData += [PrtgGroup]::new($obj)
+                }
+                default {
+                    $ReturnData = $Response.$Content.Item
+                    #Throw "Content type no handled yet: $Content"
+                }
+            }
+        }
+
+        $ReturnData
 
 
         <#         $url = HelperURLBuilder "table.xml" (
