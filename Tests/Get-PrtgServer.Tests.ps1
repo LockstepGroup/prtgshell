@@ -230,13 +230,13 @@ InModuleScope $ENV:BHProjectName {
         }
         Context "Bad Credentials" {
             # Would like to check for correct error id (1000,Get-PrtgServer), but not sure how to that with Mock
-            Mock Invoke-WebRequest { Throw "Unauthorized" } -ParameterFilter { $Uri -match 'getstatus.xml' }
+            Mock Invoke-WebRequest { Throw '401 (Unauthorized)' } -ParameterFilter { $Uri -match 'getstatus.xml' }
             It "Should throw error with bad PassHash" {
-                { Get-PrtgServer -Server $PrtgServer -UserName $PrtgUsername -PassHash $PrtgPassHash -Quiet } | Should -Throw
+                { Get-PrtgServer -Server $PrtgServer -UserName $PrtgUsername -PassHash $PrtgPassHash -Quiet } | Should -Throw -ErrorId '1001,Get-PrtgServer'
             }
-            Mock Invoke-WebRequest { Throw "Unauthorized" } -ParameterFilter { $Uri -match 'getpasshash.htm' }
+            Mock Invoke-WebRequest { Throw '401 (Unauthorized)' } -ParameterFilter { $Uri -match 'getpasshash.htm' }
             It "Should throw error with bad Credential" {
-                { Get-PrtgServer -Server $PrtgServer -Credential $PrtgCred -Quiet } |  Should -Throw "Unauthorized"
+                { Get-PrtgServer -Server $PrtgServer -Credential $PrtgCred -Quiet } |  Should -Throw -ErrorId '1001,Get-PrtgServer'
             }
         }
     }
