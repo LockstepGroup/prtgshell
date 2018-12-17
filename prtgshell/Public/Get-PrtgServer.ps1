@@ -58,9 +58,7 @@ function Get-PrtgServer {
                 # originally I was catching specific types of exceptions, but apparently they're different between core and non-core, which is stupid
                 switch -Regex ($_.Exception.Message) {
                     '401\ \(Unauthorized\)' {
-                        $PSCmdlet.ThrowTerminatingError(
-                            [HelperProcessError]::throwCustomError(1001, $Server)
-                        )
+                        $PSCmdlet.ThrowTerminatingError([HelperProcessError]::throwCustomError(1001, $Server))
                     }
                     default {
                         $PSCmdlet.ThrowTerminatingError($PSItem)
@@ -80,9 +78,7 @@ function Get-PrtgServer {
             # originally I was catching specific types of exceptions, but apparently they're different between core and non-core, which is stupid
             switch -Regex ($_.Exception.Message) {
                 '401\ \(Unauthorized\)' {
-                    $PSCmdlet.ThrowTerminatingError(
-                        [HelperProcessError]::throwCustomError(1001, $Server)
-                    )
+                    $PSCmdlet.ThrowTerminatingError([HelperProcessError]::throwCustomError(1001, $Server))
                 }
                 default {
                     $PSCmdlet.ThrowTerminatingError($PSItem)
