@@ -20,6 +20,7 @@ class HelperProcessError {
     static [hashtable] $ExceptionDefinitions = @{
         1000 = [HelperProcessError]::newExceptionDefinition('System.ArgumentException', [System.Management.Automation.ErrorCategory]::CloseError, 'No Prtg connection established. Use Get-PrtgServer to connect first.')
         1001 = [HelperProcessError]::newExceptionDefinition('System.ArgumentException', [System.Management.Automation.ErrorCategory]::CloseError, 'Unauthorized, please check your credentials.')
+        1002 = [HelperProcessError]::newExceptionDefinition('System.ArgumentException', [System.Management.Automation.ErrorCategory]::CloseError, 'Invalid Column specified for requested Content.')
         9999 = [HelperProcessError]::newExceptionDefinition('System.ArgumentException', [System.Management.Automation.ErrorCategory]::CloseError, 'Unhandled Exception') # Probably going to mask errors, not sure what else to do at this point.
     }
 
