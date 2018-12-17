@@ -60,6 +60,9 @@ function Get-PrtgServer {
                     '401\ \(Unauthorized\)' {
                         $PSCmdlet.ThrowTerminatingError([HelperProcessError]::throwCustomError(1001, $Server))
                     }
+                    ' 404\ \(Not\ Found\)' {
+                        $PSCmdlet.ThrowTerminatingError([HelperProcessError]::throwCustomError(1003, $Server))
+                    }
                     default {
                         $PSCmdlet.ThrowTerminatingError($PSItem)
                     }

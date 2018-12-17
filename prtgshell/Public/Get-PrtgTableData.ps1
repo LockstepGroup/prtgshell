@@ -3,7 +3,7 @@ function Get-PrtgTableData {
 
     Param (
         [Parameter(Mandatory = $True, Position = 0)]
-        [ValidateSet("devices", "groups", "sensors", "todos", "messages", "values", "channels", "history")]
+        [ValidateSet('probes', "devices", "groups", "sensors", "todos", "messages", "values", "channels", "history")]
         [string]$Content,
 
         [Parameter(Mandatory = $false, Position = 1)]
@@ -45,6 +45,7 @@ function Get-PrtgTableData {
         } #>
 
         $ValidColumns = @{}
+        $ValidColumns.probes = @("objid", "type", "name", "tags", "active", "probe", "notifiesx", "intervalx", "access", "dependency", "probegroupdevice", "status", "message", "priority", "upsens", "downsens", "downacksens", "partialdownsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens", "totalsens", "favorite", "schedule", "comments", "condition", "basetype", "baselink", "parentid", "fold", "groupnum", "devicenum")
         $ValidColumns.devices = @("objid", "probe", "group", "device", "host", "downsens", "partialdownsens", "downacksens", "upsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens")
         $ValidColumns.groups = @("objid", "probe", "group", "name", "downsens", "partialdownsens", "downacksens", "upsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens")
         $ValidColumns.sensors = @("objid", "probe", "group", "device", "sensor", "status", "message", "lastvalue", "lastvalue_raw", "priority", "favorite")
@@ -70,35 +71,6 @@ function Get-PrtgTableData {
         } else {
             $SelectedColumns = $ValidColumnsForContent
         }
-
-
-        <#         if (!$Columns) {
-
-            # this was pulled mostly from the API doc, with some minor adjustments
-            # this function currently doesn't work with "sensortree" or any of the nonspecific values: "reports","maps","storedreports"
-
-            $TableValues = "devices", "groups", "sensors", "todos", "messages", "values", "channels", "history"
-            $TableColumns =
-            @("objid", "probe", "group", "device", "host", "downsens", "partialdownsens", "downacksens", "upsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens"),
-            @("objid", "probe", "group", "name", "downsens", "partialdownsens", "downacksens", "upsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens"),
-            @("objid", "probe", "group", "device", "sensor", "status", "message", "lastvalue", "lastvalue_raw", "priority", "favorite"),
-            @("objid", "datetime", "name", "status", "priority", "message"),
-            @("objid", "datetime", "parent", "type", "name", "status", "message"),
-            @("datetime", "value_", "coverage"),
-            @("name", "lastvalue", "lastvalue_raw"),
-            @("dateonly", "timeonly", "user", "message")
-
-            $PRTGTableBuilder = @()
-
-            for ($i = 0; $i -le $TableValues.Count; $i++) {
-                $ThisRow = "" | Select-Object @{ n = 'content'; e = { $TableValues[$i] } }, @{ n = 'columns'; e = { $TableColumns[$i] } }
-                $PRTGTableBuilder += $ThisRow
-            }
-
-            $SelectedColumns = ($PRTGTableBuilder | ? { $_.content -eq $Content }).columns
-        } else {
-            $SelectedColumns = $Columns
-        } #>
 
         $SelectedColumnsString = $SelectedColumns -join ","
 
@@ -130,13 +102,21 @@ function Get-PrtgTableData {
             switch ($Content) {
                 'devices' {
                     $ReturnData += [PrtgDevice]::new($obj)
+                    continue
                 }
                 'groups' {
                     $ReturnData += [PrtgGroup]::new($obj)
+                    continue
+                }
+                'probes' {
+                    if ($obj.type -ne 'Probe') {
+                        continue
+                    }
+                    $ReturnData += [PrtgProbe]::new($obj)
+                    continue
                 }
                 default {
                     $ReturnData = $Response.$Content.Item
-                    #Throw "Content type no handled yet: $Content"
                 }
             }
         }
