@@ -1,50 +1,46 @@
-function Get-PrtgServer {
-    [CmdletBinding(DefaultParameterSetName = 'PassHash')]
+function Invoke-PrtgApiQuery {
+    [CmdletBinding()]
 
     Param (
         [Parameter(Mandatory = $True, Position = 0)]
-        [ValidatePattern("\d+\.\d+\.\d+\.\d+|(\w\.)+\w")]
-        [string]$Server,
+        [string]$QueryPage,
 
-        [Parameter(ParameterSetName = "PassHash", Mandatory = $True, Position = 1)]
-        [string]$UserName,
-
-        [Parameter(ParameterSetName = "PassHash", Mandatory = $True, Position = 2)]
-        [string]$PassHash,
-
-        [Parameter(ParameterSetName = "Credential", Mandatory = $True, Position = 1)]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential,
-
-        [Parameter(Mandatory = $False, Position = 2)]
-        [int]$Port = 443,
-
-        [Parameter(Mandatory = $False)]
-        [alias('http')]
-        [switch]$HttpOnly,
-
-        [Parameter(Mandatory = $False)]
-        [switch]$SkipCertificateCheck,
-
-        [Parameter(Mandatory = $False)]
-        [alias('q')]
-        [switch]$Quiet
+        [Parameter(Mandatory = $True, Position = 1)]
+        [hashtable]$QueryHashtable
     )
 
     BEGIN {
-        $VerbosePrefix = "Get-PrtgServer:"
-
-        if ($HttpOnly) {
-            $Protocol = "http"
-            if (!$Port) { $Port = 80 }
-        } else {
-            $Protocol = "https"
-            if (!$Port) { $Port = 443 }
-        }
+        $VerbosePrefix = "Invoke-PrtgApiQuery:"
     }
 
     PROCESS {
+        if ($global:PrtgServerObject.Connected) {
+            try {
+                $global:PrtgServerObject.invokeApiQuery($QueryPage, $QueryHashtable)
+            } catch {
+                $PSCmdlet.ThrowTerminatingError(
+                    [System.Management.Automation.ErrorRecord]::new(
+                        ([System.ArgumentException]"No Prtg connection established. Use Get-PrtgServer to connect first."),
+                        '1000',
+                        [System.Management.Automation.ErrorCategory]::CloseError,
+                        $Server
+                    )
+                )
+            }
+        } else {
+            try {
+                throw
+            } catch {
+                $PSCmdlet.ThrowTerminatingError(
+                    [System.Management.Automation.ErrorRecord]::new(
+                        ([System.ArgumentException]"No Prtg connection established. Use Get-PrtgServer to connect first."),
+                        '1000',
+                        [System.Management.Automation.ErrorCategory]::CloseError,
+                        $Server
+                    )
+                )
+            }
+        }
 
         if ($PassHash) {
             Write-Verbose "$VerbosePrefix Attempting to connect with provided Username and PassHash"
@@ -59,7 +55,12 @@ function Get-PrtgServer {
                 switch -Regex ($_.Exception.Message) {
                     '401\ \(Unauthorized\)' {
                         $PSCmdlet.ThrowTerminatingError(
-                            [HelperProcessError]::throwCustomError(1001, $Server)
+                            [System.Management.Automation.ErrorRecord]::new(
+                                ([System.ArgumentException]"Unauthorized, please check your credentials."),
+                                '1000',
+                                [System.Management.Automation.ErrorCategory]::CloseError,
+                                $Server
+                            )
                         )
                     }
                     default {
@@ -81,7 +82,12 @@ function Get-PrtgServer {
             switch -Regex ($_.Exception.Message) {
                 '401\ \(Unauthorized\)' {
                     $PSCmdlet.ThrowTerminatingError(
-                        [HelperProcessError]::throwCustomError(1001, $Server)
+                        [System.Management.Automation.ErrorRecord]::new(
+                            ([System.ArgumentException]"Unauthorized, please check your credentials."),
+                            '1000',
+                            [System.Management.Automation.ErrorCategory]::CloseError,
+                            $Server
+                        )
                     )
                 }
                 default {
