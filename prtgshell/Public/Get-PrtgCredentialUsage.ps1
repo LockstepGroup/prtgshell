@@ -20,8 +20,10 @@ function Get-PrtgCredentialUsage {
     }
 
     PROCESS {
-        $New = "" | Select-Object -Property ObjectId, WindowsDomain, WindowsUsername, LinuxUsername, EsxUsername, SnmpV3User
-        $New.ObjectId = $ObjectId
+        Write-Verbose "$VerbosePrefix Checking Credential Usage for Object: $($ObjectId[0])"
+        $New = "" | Select-Object -Property ObjectId, ObjectType, WindowsDomain, WindowsUsername, LinuxUsername, EsxUsername, SnmpV3User
+        $New.ObjectId = $ObjectId[0]
+        $New.ObjectType = $_.GetType().Name
         $New.WindowsDomain = Get-PrtgObjectProperty -Property windowslogindomain -ObjectId $ObjectId
         $New.WindowsUsername = Get-PrtgObjectProperty -Property windowsloginusername -ObjectId $ObjectId
         $New.LinuxUsername = Get-PrtgObjectProperty -Property linuxloginusername -ObjectId $ObjectId

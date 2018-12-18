@@ -16,7 +16,10 @@ function Get-PrtgTableData {
         [string[]]$FilterTag, #>
 
         [Parameter(Mandatory = $False)]
-        [int]$Count
+        [int]$Count = 500,
+
+        [Parameter(Mandatory = $False)]
+        [int]$StartNumber
     )
 
     BEGIN {
@@ -30,11 +33,10 @@ function Get-PrtgTableData {
         }
 
         $QueryTable = @{}
+        $Batching = $false
 
-        if ($Count) {
-            $QueryTable.count = $Count
-        }
-
+        $global:PrtgServerObject.ReturnCount = $Count
+        $global:PrtgServerObject.CurrentStartPosition = $StartNumber
 
         <# if ($Content -eq "sensors" -and $FilterTags) {
             $FilterString = ""
@@ -84,39 +86,43 @@ function Get-PrtgTableData {
         $QueryTable.columns = $SelectedColumnsString
         $QueryTable.id = $ObjectId
 
-        try {
-            $Response = $global:PrtgServerObject.invokeApiQuery($QueryTable, $QueryPage)
-        } catch {
-            # originally I was catching specific types of exceptions, but apparently they're different between core and non-core, which is stupid
-            switch -Regex ($_.Exception.Message) {
-                '401\ \(Unauthorized\)' {
-                    $PSCmdlet.ThrowTerminatingError([HelperProcessError]::throwCustomError(1001, $Server))
-                }
-                default {
-                    $PSCmdlet.ThrowTerminatingError($PSItem)
+        if ($Batching) {
+
+        } else {
+            try {
+                $Response = $global:PrtgServerObject.invokeApiQuery($QueryTable, $QueryPage, $Content)
+            } catch {
+                # originally I was catching specific types of exceptions, but apparently they're different between core and non-core, which is stupid
+                switch -Regex ($_.Exception.Message) {
+                    '401\ \(Unauthorized\)' {
+                        $PSCmdlet.ThrowTerminatingError([HelperProcessError]::throwCustomError(1001, $Server))
+                    }
+                    default {
+                        $PSCmdlet.ThrowTerminatingError($PSItem)
+                    }
                 }
             }
-        }
 
-        foreach ($obj in $Response.$Content.Item) {
-            switch ($Content) {
-                'devices' {
-                    $ReturnData += [PrtgDevice]::new($obj)
-                    continue
-                }
-                'groups' {
-                    $ReturnData += [PrtgGroup]::new($obj)
-                    continue
-                }
-                'probes' {
-                    if ($obj.type -ne 'Probe') {
+            foreach ($obj in $Response) {
+                switch ($Content) {
+                    'devices' {
+                        $ReturnData += [PrtgDevice]::new($obj)
                         continue
                     }
-                    $ReturnData += [PrtgProbe]::new($obj)
-                    continue
-                }
-                default {
-                    $ReturnData = $Response.$Content.Item
+                    'groups' {
+                        $ReturnData += [PrtgGroup]::new($obj)
+                        continue
+                    }
+                    'probes' {
+                        if ($obj.type -ne 'Probe') {
+                            continue
+                        }
+                        $ReturnData += [PrtgProbe]::new($obj)
+                        continue
+                    }
+                    default {
+                        $ReturnData = $Response
+                    }
                 }
             }
         }

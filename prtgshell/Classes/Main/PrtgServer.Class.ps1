@@ -11,6 +11,8 @@ class PrtgServer {
     [string]$PassHash
 
     # Track usage
+    [int]$ReturnCount = 500
+    [int]$CurrentStartPosition = 0
     hidden [bool]$Connected
     [array]$UrlHistory
     [array]$RawQueryResultHistory
@@ -86,6 +88,45 @@ class PrtgServer {
         return $result
     }
     #endregion GetPassHashQuery
+
+    #region invokeApiQueryBatches
+    [array] invokeApiQuery([hashtable]$queryHashtable, [string]$queryPage, [string]$itemNode = $null) {
+        Write-Verbose "Calling invokeapiquery with itemNode: $itemNode"
+        Write-Verbose "ReturnCount: $($this.ReturnCount)"
+        Write-Verbose "CurrentStartPosition: $($this.CurrentStartPosition)"
+        $ContinueLoop = $true
+        $allResults = @()
+        $checkResults = @{}
+        $queryHashtable.returncount = $this.ReturnCount
+        $result = $this.invokeApiQuery($queryHashtable, $queryPage)
+        $result = $result.$itemNode.item
+        $allResults += $result
+        foreach ($r in $result) {
+            $thisId = $r.objid
+            $checkResults.$thisId = $r
+        }
+        do {
+            $this.CurrentStartPosition = $this.CurrentStartPosition + $this.ReturnCount
+            $queryHashtable.start = $this.CurrentStartPosition
+            Write-Verbose "CurrentStartPosition: $($this.CurrentStartPosition)"
+            Write-Verbose "allResults Count: $($allResults.Count)"
+            $result = $this.invokeApiQuery($queryHashtable, $queryPage)
+            $result = $result.$itemNode.item
+            foreach ($r in $result) {
+                $thisId = $r.objid
+                if ($checkResults.$thisId) {
+                    $ContinueLoop = $false
+                } else {
+                    $checkResults.$thisId = $r
+                    $allResults += $r
+                }
+            }
+        } while ($ContinueLoop)
+        $this.CurrentStartPosition = 0
+        $this.LastResult = $allResults
+        return $allResults
+    }
+    #endregion invokeApiQueryBatches
 
     #region invokeApiQuery
     [xml] invokeApiQuery([hashtable]$queryHashtable, [string]$queryPage) {
