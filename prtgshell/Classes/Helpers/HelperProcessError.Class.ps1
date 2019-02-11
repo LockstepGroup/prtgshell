@@ -17,6 +17,7 @@ class HelperProcessError {
     }
 
     # List of Exceptions
+    # The Types and Categories here are generic because I have no idea what subset exist in both core and non-core.
     static [hashtable] $ExceptionDefinitions = @{
         1000 = [HelperProcessError]::newExceptionDefinition('System.ArgumentException', [System.Management.Automation.ErrorCategory]::CloseError, 'No Prtg connection established. Use Get-PrtgServer to connect first.')
         1001 = [HelperProcessError]::newExceptionDefinition('System.ArgumentException', [System.Management.Automation.ErrorCategory]::CloseError, 'Unauthorized, please check your credentials.')
