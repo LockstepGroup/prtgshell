@@ -19,12 +19,13 @@ Function Get-PrtgSensorHistoricData {
     }
 
     PROCESS {
-		$Parameters = @{
+		$QueryTable = @{}
+		$QueryPage = 'historicdata.xml'
 			$QueryTable.id = $SensorId
 			$QueryTable.sdate = $RangeStart.ToString("yyyy-MM-dd-HH-mm-ss")
 			$QueryTable.edate = $RangeEnd.ToString("yyyy-MM-dd-HH-mm-ss")
 			$QueryTable.avg = $IntervalInSeconds
-		}
+
 
 				$Response = $global:PrtgServerObject.invokeApiQuery($QueryTable, $QueryPage)
 
