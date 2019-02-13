@@ -138,7 +138,7 @@ function Get-PrtgTableData {
             $CountString
         ) #>
 
-        #$Global:LastUrl = $Url
+        #$Global:LastUrl = $Urlt
 
         <#         if ($Raw) {
             $QueryObject = HelperHTTPQuery $url
