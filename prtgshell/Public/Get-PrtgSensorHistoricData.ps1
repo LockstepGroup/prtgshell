@@ -25,9 +25,8 @@ Function Get-PrtgSensorHistoricData {
 			$QueryTable.sdate = $RangeStart.ToString("yyyy-MM-dd-HH-mm-ss")
 			$QueryTable.edate = $RangeEnd.ToString("yyyy-MM-dd-HH-mm-ss")
 			$QueryTable.avg = $IntervalInSeconds
-
 			$Response = $global:PrtgServerObject.invokeApiQuery($QueryTable, $QueryPage)
-			$DataPoints = $Response.RawData | ? { $_.'Date Time' -ne 'Averages' }
+			$DataPoints = $Response.HistData.Item | ? { $_.'Date Time' -ne 'Averages' }
 		}
 
 	END {
