@@ -15,12 +15,12 @@ Function Get-PrtgSensorHistoricData {
     )
 
     BEGIN {
-		$PrtgServerObject = $global:PrtgServerObject
-		$QueryTable = @{}
+			$PrtgServerObject = $global:PrtgServerObject
+			$QueryTable = @{}
     }
 
     PROCESS {
-		$QueryPage = 'historicdata.xml'
+			$QueryPage = 'historicdata.xml'
 			$QueryTable.id = $SensorId
 			$QueryTable.sdate = $RangeStart.ToString("yyyy-MM-dd-HH-mm-ss")
 			$QueryTable.edate = $RangeEnd.ToString("yyyy-MM-dd-HH-mm-ss")
@@ -28,8 +28,7 @@ Function Get-PrtgSensorHistoricData {
 
 			$Response = $global:PrtgServerObject.invokeApiQuery($QueryTable, $QueryPage)
 			$DataPoints = $Response.RawData | ? { $_.'Date Time' -ne 'Averages' }
-
-	}
+		}
 
 	END {
 		return $DataPoints
