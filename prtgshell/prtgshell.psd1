@@ -12,7 +12,7 @@
     RootModule        = 'prtgshell.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '3.0.1'
+    ModuleVersion     = '3.0.3'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -107,7 +107,7 @@
             # IconUri = ''
 
             # ReleaseNotes of this module
-            ReleaseNotes = 'First release of module rewritten to take advantage of PowerShell 5 classes and add Core compatibility.'
+            ReleaseNotes = 'Added Get-PrtgSensorHistoricData'
 
         } # End of PSData hashtable
 
@@ -120,6 +120,8 @@
     # DefaultCommandPrefix = ''
 
 }
+
+
 
 
 
