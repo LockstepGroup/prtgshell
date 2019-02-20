@@ -1,5 +1,6 @@
 class PrtgDevice {
     [int]$ObjectId
+    [string]$Name
     [System.Xml.XmlElement]$Xml
 
     [string]$Probe

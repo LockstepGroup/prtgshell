@@ -50,7 +50,7 @@ function Get-PrtgTableData {
         $ValidColumns.probes = @("objid", "type", "name", "tags", "active", "probe", "notifiesx", "intervalx", "access", "dependency", "probegroupdevice", "status", "message", "priority", "upsens", "downsens", "downacksens", "partialdownsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens", "totalsens", "favorite", "schedule", "comments", "condition", "basetype", "baselink", "parentid", "fold", "groupnum", "devicenum")
         $ValidColumns.devices = @("objid", "probe", "group", "device", "host", "downsens", "partialdownsens", "downacksens", "upsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens")
         $ValidColumns.groups = @("objid", "probe", "group", "name", "downsens", "partialdownsens", "downacksens", "upsens", "warnsens", "pausedsens", "unusualsens", "undefinedsens")
-        $ValidColumns.sensors = @("objid", "probe", "group", "device", "sensor", "status", "message", "lastvalue", "lastvalue_raw", "priority", "favorite")
+        $ValidColumns.sensors = @("parentid", "objid", "probe", "group", "device", "sensor", "status", "message", "lastvalue", "lastvalue_raw", "priority", "favorite")
         $ValidColumns.todos = @("objid", "datetime", "name", "status", "priority", "message")
         $ValidColumns.messages = @("objid", "datetime", "parent", "type", "name", "status", "message")
         $ValidColumns.values = @("datetime", "value_", "coverage")
@@ -98,7 +98,8 @@ function Get-PrtgTableData {
                         $PSCmdlet.ThrowTerminatingError([HelperProcessError]::throwCustomError(1001, $Server))
                     }
                     default {
-                        $PSCmdlet.ThrowTerminatingError($PSItem)
+                        Throw $_
+                        #$PSCmdlet.ThrowTerminatingError($PSItem)
                     }
                 }
             }
